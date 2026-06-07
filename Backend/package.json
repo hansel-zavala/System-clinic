@@ -1,0 +1,32 @@
+{
+  "name": "clinica-aura-backend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "multer": "^2.1.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["bcrypt", "esbuild"]
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.1.0",
+    "@types/node": "^25.9.1",
+    "tsx": "^4.19.3",
+    "typescript": "^6.0.3"
+  }
+}
