@@ -36,6 +36,8 @@ import { hashPassword, verifyPassword } from './passwordCrypto.js'
 import { registerProfilePhotoRoute } from './profilePhotoUpload.js'
 import type { DbUser } from './mappers.js'
 
+const bookingIPLimitMap = new Map<string, number[]>()
+
 async function upsertAndPrune(
   supabase: SupabaseClient,
   table: string,
@@ -341,6 +343,19 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
     if (!supabase) {
       return res.status(503).json({ ok: false, error: 'Supabase no configurado.' })
     }
+
+    // Rate limiting simple en memoria para consultas de disponibilidad
+    const ip = req.ip || req.socket.remoteAddress || 'unknown-ip'
+    const now = Date.now()
+    const windowMs = 15 * 60 * 1000
+    const limitMap = bookingIPLimitMap.get(ip + '_avail') ?? []
+    const activeRequests = limitMap.filter((t) => now - t < windowMs)
+    if (activeRequests.length >= 30) {
+      return res.status(429).json({ ok: false, error: 'Demasiadas consultas de disponibilidad. Por favor espera unos minutos.' })
+    }
+    activeRequests.push(now)
+    bookingIPLimitMap.set(ip + '_avail', activeRequests)
+
     const fechaISO = req.query.fechaISO as string
     if (!fechaISO) {
       return res.status(400).json({ ok: false, error: 'Falta el parámetro fechaISO.' })
@@ -404,6 +419,16 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
       return res.status(503).json({ ok: false, error: 'Supabase no configurado.' })
     }
 
+    // Rate limiting simple en memoria para agendamiento de citas
+    const ip = req.ip || req.socket.remoteAddress || 'unknown-ip'
+    const now = Date.now()
+    const windowMs = 15 * 60 * 1000
+    const limitMap = bookingIPLimitMap.get(ip + '_book') ?? []
+    const activeRequests = limitMap.filter((t) => now - t < windowMs)
+    if (activeRequests.length >= 3) {
+      return res.status(429).json({ ok: false, error: 'Has superado el límite de citas reservadas por hoy (máximo 3 por cada 15 minutos).' })
+    }
+
     const body = req.body as {
       nombre?: string
       telefono?: string
@@ -457,7 +482,7 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
         return res.status(400).json({ ok: false, error: 'El horario seleccionado ya no está disponible.' })
       }
 
-      // 2. Buscar o crear el paciente
+      // 2. Buscar o crear el paciente, y verificar si tiene cita pendiente futura
       const cleanPhone = telefono.replace(/\D/g, '') // Elimina caracteres no numéricos
       let pacienteId = ''
       let userPacienteId = ''
@@ -472,6 +497,27 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
       if (existingPatients && existingPatients.length > 0) {
         pacienteId = existingPatients[0].id
         userPacienteId = existingPatients[0].user_id
+
+        // Comprobar si ya tiene una cita activa ('pendiente' o 'confirmada') en el futuro (mismo día o posterior)
+        const todayIso = new Date().toISOString().split('T')[0]
+        const { data: activeAppts, error: activeErr } = await supabase
+          .from('appointments')
+          .select('id, fecha_iso')
+          .eq('paciente_id', pacienteId)
+          .in('estado', ['pendiente', 'confirmada'])
+        if (activeErr) throw activeErr
+
+        const futureAppt = (activeAppts ?? []).find((a) => {
+          const apptDate = a.fecha_iso.split('T')[0]
+          return apptDate >= todayIso
+        })
+
+        if (futureAppt) {
+          return res.status(400).json({
+            ok: false,
+            error: 'Ya cuentas con una cita programada pendiente en nuestro sistema. Para reagendarla o cancelarla, comunícate con la administración.',
+          })
+        }
       } else {
         // Crear usuario paciente
         userPacienteId = newNumericId()
@@ -557,6 +603,10 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
       if (insNotifErr) {
         console.error('[chatbot-booking] Error al crear notificaciones:', insNotifErr.message)
       }
+
+      // Registrar esta reserva exitosa en el rate limit de la IP
+      activeRequests.push(now)
+      bookingIPLimitMap.set(ip + '_book', activeRequests)
 
       res.json({
         ok: true,

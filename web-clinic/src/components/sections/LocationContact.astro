@@ -1,0 +1,132 @@
+---
+---
+<section class="bg-surface-container py-xl border-t border-outline" id="location">
+  <div class="px-margin-mobile md:px-gutter max-w-max-width mx-margin-desktop grid md:grid-cols-2 gap-xl">
+    <!-- Información de Ubicación -->
+    <div class="bg-surface border border-outline rounded-lg overflow-hidden flex flex-col shadow-[0_2px_10px_-4px_rgba(20,61,38,0.01)]">
+      <div class="h-64 bg-surface-container-high relative flex items-center justify-center border-b border-outline">
+        <img 
+          alt="Ubicación en el Mapa" 
+          class="absolute inset-0 w-full h-full object-cover opacity-85" 
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGZsxpqMHzDt_r90wW1mqXSiyUhq9DnY6c7ZsijIcfcooxoyIscYUycARZNWeXVTDyCuHStcb3XG2gwwbVPk8La94RlAwqMoSTWSxHNwg42zE3JXtaCQeSNAisw7ljZbqRKEuyfgCWdcFatc949cLdjzokyNmFAWli4wL5ZsXs-22gmYD9iH7Yp1AIdAA84yGdJXDy08k0w6ov5OR4TSYUthdZZuXqrIbMxZUBteh3PwTI-MbRzzZyi04dnrCK1FSFnoiz2RxHjs4"/>
+        <div class="absolute inset-0 bg-background/10 backdrop-blur-[1px]"></div>
+        <div class="z-10 bg-surface p-sm rounded-full shadow-[0_4px_12px_rgba(20,61,38,0.08)] border border-outline">
+          <span class="material-symbols-outlined text-primary text-[28px]" style="font-variation-settings: 'FILL' 1;">location_on</span>
+        </div>
+      </div>
+      <div class="p-lg flex-grow flex flex-col justify-between space-y-md">
+        <div>
+          <h3 class="font-display text-[28px] text-on-surface mb-md">Nuestra Instalación</h3>
+          <div class="flex items-start space-x-sm mb-md">
+            <span class="material-symbols-outlined text-secondary text-[20px] mt-xs">map</span>
+            <p class="font-body text-body-md text-on-surface-variant leading-relaxed">1200 Healthcare Drive, Suite 400<br/>Metropolitan District, NY 10001</p>
+          </div>
+          <div class="flex items-start space-x-sm pt-md border-t border-outline/50">
+            <span class="material-symbols-outlined text-secondary text-[20px] mt-xs">schedule</span>
+            <div class="font-body text-body-md text-on-surface-variant w-full">
+              <p class="flex justify-between border-b border-outline/30 pb-xs"><span>Lunes - Viernes:</span> <span class="font-medium text-on-surface">8:00 AM - 8:00 PM</span></p>
+              <p class="flex justify-between border-b border-outline/30 py-xs"><span>Sábado:</span> <span class="font-medium text-on-surface">9:00 AM - 2:00 PM</span></p>
+              <p class="flex justify-between pt-xs"><span>Domingo:</span> <span class="text-error font-medium">Cerrado</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulario de Contacto -->
+    <div class="flex flex-col justify-center" id="contact">
+      <h2 class="font-display text-[36px] text-on-surface mb-xs">Consultas Generales</h2>
+      <p class="font-body text-body-md text-on-surface-variant mb-lg leading-relaxed">
+        Para preguntas no médicas, complete el siguiente formulario. Para programar citas, utilice nuestro asistente automatizado.
+      </p>
+      
+      <div id="contact-form-container">
+        <form class="space-y-md" id="contact-form">
+          <div class="grid grid-cols-2 gap-sm">
+            <div>
+              <label class="block font-label-md text-caption text-on-surface mb-xs uppercase tracking-wider">Nombre</label>
+              <input 
+                class="w-full bg-surface border border-outline rounded-sm px-sm py-sm text-body-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" 
+                placeholder="Juana" 
+                type="text"
+                required
+                id="contact-first-name"
+              />
+            </div>
+            <div>
+              <label class="block font-label-md text-caption text-on-surface mb-xs uppercase tracking-wider">Apellido</label>
+              <input 
+                class="w-full bg-surface border border-outline rounded-sm px-sm py-sm text-body-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" 
+                placeholder="Pérez" 
+                type="text"
+                required
+                id="contact-last-name"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="block font-label-md text-caption text-on-surface mb-xs uppercase tracking-wider">Correo Electrónico</label>
+            <input 
+              class="w-full bg-surface border border-outline rounded-sm px-sm py-sm text-body-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" 
+              placeholder="juana.perez@example.com" 
+              type="email"
+              required
+              id="contact-email"
+            />
+          </div>
+          <div>
+            <label class="block font-label-md text-caption text-on-surface mb-xs uppercase tracking-wider">Mensaje</label>
+            <textarea 
+              class="w-full bg-surface border border-outline rounded-sm px-sm py-sm text-body-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm resize-none" 
+              placeholder="¿Cómo podemos ayudarte?" 
+              rows="4"
+              required
+              id="contact-message"
+            ></textarea>
+          </div>
+          <button 
+            class="bg-primary text-surface border border-primary font-label-md text-label-md px-lg py-sm rounded-sm hover:bg-opacity-95 transition-all shadow-[0_2px_8px_-2px_rgba(20,61,38,0.12)] active:scale-95 cursor-pointer" 
+            type="submit"
+          >
+            Enviar Mensaje
+          </button>
+        </form>
+      </div>
+
+      <div id="contact-success-msg" class="hidden bg-surface border border-outline rounded-lg p-lg text-center space-y-sm shadow-[0_4px_20px_-4px_rgba(20,61,38,0.04)] animate-fade-in">
+        <span class="material-symbols-outlined text-[48px] text-primary">verified</span>
+        <h3 class="font-display text-[30px] text-on-surface">¡Muchas Gracias!</h3>
+        <p class="font-body text-body-md text-on-surface-variant leading-relaxed">Hemos recibido tu mensaje y nuestro equipo se pondrá en contacto contigo a la brevedad.</p>
+        <button 
+          id="contact-reset-btn"
+          class="mt-sm bg-primary text-surface font-label-md text-label-md px-md py-sm rounded-sm hover:bg-opacity-95 transition-all"
+        >
+          Enviar Otro Mensaje
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const form = document.getElementById('contact-form') as HTMLFormElement | null;
+  const container = document.getElementById('contact-form-container');
+  const successMsg = document.getElementById('contact-success-msg');
+  const resetBtn = document.getElementById('contact-reset-btn');
+
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (container && successMsg) {
+      container.classList.add('hidden');
+      successMsg.classList.remove('hidden');
+      form.reset();
+    }
+  });
+
+  resetBtn?.addEventListener('click', () => {
+    if (container && successMsg) {
+      container.classList.remove('hidden');
+      successMsg.classList.add('hidden');
+    }
+  });
+</script>

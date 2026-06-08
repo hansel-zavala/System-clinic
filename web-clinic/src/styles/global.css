@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom variables for the new design system */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Base style resets and scrollbar */
+html {
+  background-color: #fafaf6;
+  color: #111612;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Custom scrollbar for modern feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #fafaf6;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd0cb;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #5c645e;
+}
+
+/* Material Symbols sizing */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Micro-animations and active scaling feedback */
+button, 
+a, 
+.ds-interactive {
+  transition: transform 160ms var(--ease-out), background-color 160ms ease, border-color 160ms ease, opacity 160ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button:hover,
+  a:hover,
+  .ds-interactive:hover {
+    /* Gentle lift on hover for interactive elements */
+    transform: translateY(-1px);
+  }
+}
+
+button:active, 
+a:active, 
+.ds-interactive:active {
+  /* Snappy scale feedback on press */
+  transform: scale(0.975) translateY(0);
+}
+
+/* Ambient shadow for clinical premium components */
+.ambient-shadow {
+  box-shadow: 0 4px 20px -4px rgba(20, 61, 38, 0.04), 
+              0 12px 40px -8px rgba(20, 61, 38, 0.06);
+}
+
+/* Hide scrollbars for clean interfaces */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 350ms var(--ease-out) forwards;
+}
+
+/* Smooth list entry cascade */
+@keyframes itemEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-entrance {
+  animation: itemEntrance 300ms var(--ease-out) forwards;
+}
+
+/* Accessibility: prefers-reduced-motion fallback */
+@media (prefers-reduced-motion: reduce) {
+  button, 
+  a, 
+  .ds-interactive {
+    transition: none !important;
+    transform: none !important;
+  }
+  .animate-fade-in,
+  .animate-entrance {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

@@ -1,0 +1,75 @@
+---
+---
+<nav class="bg-surface fixed top-0 left-0 right-0 z-50 border-b border-outline h-20 shadow-[0_2px_10px_-4px_rgba(20,61,38,0.02)]">
+  <div class="max-w-[1200px] mx-auto h-full flex items-center justify-between px-margin-mobile md:px-gutter">
+    <!-- Logo elegante de la clínica -->
+    <a href="/" class="flex items-center gap-xs font-display text-[26px] font-medium text-primary tracking-tight group">
+      <span class="material-symbols-outlined text-[26px] text-primary group-hover:scale-105 transition-transform" style="font-variation-settings: 'FILL' 1;">medical_services</span>
+      <span>MedClinic</span>
+    </a>
+    
+    <!-- Enlaces de Escritorio (Estilo Mínimo Editorial) -->
+    <div class="hidden lg:flex items-center space-x-md">
+      <a class="text-primary font-bold border-b-2 border-primary pb-1 font-label-md text-label-md hover:opacity-80 transition-all" href="/#home">Inicio</a>
+      <a class="text-on-surface-variant font-medium font-label-md text-label-md hover:text-primary transition-colors duration-200" href="/#about">Nosotros</a>
+      <a class="text-on-surface-variant font-medium font-label-md text-label-md hover:text-primary transition-colors duration-200" href="/#services">Servicios</a>
+      <a class="text-on-surface-variant font-medium font-label-md text-label-md hover:text-primary transition-colors duration-200" href="/#location">Ubicación</a>
+      <a class="text-on-surface-variant font-medium font-label-md text-label-md hover:text-primary transition-colors duration-200" href="/#contact">Contacto</a>
+    </div>
+
+    <!-- Botón de Agendamiento -->
+    <a 
+      href="/booking/" 
+      class="hidden lg:inline-flex items-center justify-center bg-primary text-surface font-label-md text-label-md px-md py-[10px] rounded-sm hover:bg-opacity-90 transition-all shadow-[0_2px_8px_-2px_rgba(20,61,38,0.12)] active:scale-95"
+    >
+      Reservar Cita
+    </a>
+
+    <!-- Botón de Menú Móvil -->
+    <button class="lg:hidden text-on-surface focus:outline-none p-xs rounded hover:bg-surface-container-low transition-colors" id="mobile-menu-toggle" aria-label="Toggle menu">
+      <span class="material-symbols-outlined text-[24px]">menu</span>
+    </button>
+  </div>
+
+  <!-- Menú Móvil -->
+  <div class="hidden absolute top-20 left-0 w-full bg-surface border-b border-outline flex flex-col p-md space-y-sm lg:hidden shadow-md z-40 transition-all" id="mobile-menu">
+    <a class="text-on-surface-variant font-medium font-label-md text-label-md hover:text-primary py-xs transition-colors duration-200" href="/#home">Inicio</a>
+    <a class="text-on-surface-variant font-medium font-label-md text-label-md hover:text-primary py-xs transition-colors duration-200" href="/#about">Nosotros</a>
+    <a class="text-on-surface-variant font-medium font-label-md text-label-md hover:text-primary py-xs transition-colors duration-200" href="/#services">Servicios</a>
+    <a class="text-on-surface-variant font-medium font-label-md text-label-md hover:text-primary py-xs transition-colors duration-200" href="/#location">Ubicación</a>
+    <a class="text-on-surface-variant font-medium font-label-md text-label-md hover:text-primary py-xs transition-colors duration-200" href="/#contact">Contacto</a>
+    <a 
+      href="/booking/" 
+      class="bg-primary text-surface font-label-md text-label-md py-sm rounded-sm text-center hover:bg-opacity-95 transition-colors w-full focus:ring-2 focus:ring-primary focus:ring-offset-2 flex items-center justify-center gap-xs"
+    >
+      <span class="material-symbols-outlined text-[18px]">calendar_month</span>
+      <span>Reservar Cita</span>
+    </a>
+  </div>
+</nav>
+
+<script>
+  // Control de menú móvil
+  const toggleBtn = document.getElementById('mobile-menu-toggle');
+  const mobileMenu = document.getElementById('mobile-menu');
+
+  toggleBtn?.addEventListener('click', () => {
+    if (mobileMenu) {
+      mobileMenu.classList.toggle('hidden');
+      const icon = toggleBtn.querySelector('.material-symbols-outlined');
+      if (icon) {
+        icon.textContent = mobileMenu.classList.contains('hidden') ? 'menu' : 'close';
+      }
+    }
+  });
+
+  // Cerrar menú móvil al hacer clic
+  const mobileLinks = mobileMenu?.querySelectorAll('a');
+  mobileLinks?.forEach(link => {
+    link.addEventListener('click', () => {
+      mobileMenu?.classList.add('hidden');
+      const icon = toggleBtn?.querySelector('.material-symbols-outlined');
+      if (icon) icon.textContent = 'menu';
+    });
+  });
+</script>

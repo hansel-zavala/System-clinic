@@ -1,0 +1,39 @@
+---
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+import Navbar from '../components/sections/Navbar.astro';
+import Footer from '../components/sections/Footer.astro';
+import '../styles/global.css';
+---
+
+<!DOCTYPE html>
+<html class="scroll-smooth" lang="es">
+  <head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>{title}</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  </head>
+  <body class="bg-background text-on-background font-body-md text-body-md antialiased relative">
+    <Navbar />
+    <slot />
+    <Footer />
+
+    <!-- Persistent Floating Booking Button linking to dedicated booking page -->
+    <a 
+      href="/booking/" 
+      class="fixed bottom-lg right-margin-mobile md:right-lg w-14 h-14 bg-primary text-on-primary rounded-full ambient-shadow flex items-center justify-center hover:bg-on-primary-fixed-variant transition-all hover:scale-110 z-40 focus:ring-2 focus:ring-primary focus:ring-offset-2" 
+      aria-label="Reservar una Cita"
+      id="floating-book-btn"
+    >
+      <span class="material-symbols-outlined text-[28px]">calendar_month</span>
+    </a>
+  </body>
+</html>

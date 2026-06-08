@@ -1,0 +1,64 @@
+---
+import LayoutBase from '../layouts/LayoutBase.astro';
+import LocationContact from '../components/sections/LocationContact.astro';
+---
+
+<LayoutBase title="Contáctanos - MedClinic">
+  <main class="pt-32 pb-xl space-y-xl">
+    <!-- Encabezado -->
+    <div class="text-center max-w-3xl mx-auto space-y-sm px-margin-mobile">
+      <div class="inline-flex items-center space-x-xs bg-primary-fixed text-primary px-sm py-xs rounded-full font-label-md text-label-md">
+        <span class="material-symbols-outlined text-[16px]">contact_support</span>
+        <span>Contacto</span>
+      </div>
+      <h1 class="font-display text-[48px] md:text-[56px] text-on-surface leading-tight tracking-tight">
+        Ponte en <span class="italic font-light text-primary">Contacto</span>
+      </h1>
+      <p class="font-body text-body-lg text-on-surface-variant leading-relaxed">
+        ¿Tienes preguntas sobre nuestras instalaciones, seguros o especialidades médicas? Envíanos un mensaje o contáctanos directamente.
+      </p>
+    </div>
+
+    <!-- Tarjetas de Contacto Rápido -->
+    <section class="px-margin-mobile md:px-gutter max-w-max-width mx-margin-desktop grid grid-cols-1 md:grid-cols-3 gap-md">
+      <!-- Tarjeta de Teléfono -->
+      <div class="bg-surface border border-outline rounded-lg p-md flex items-start space-x-md hover:border-primary transition-all duration-300 shadow-[0_2px_8px_-4px_rgba(20,61,38,0.02)] group">
+        <div class="w-12 h-12 bg-primary/5 rounded-sm flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+          <span class="material-symbols-outlined text-primary text-[24px]">call</span>
+        </div>
+        <div>
+          <h3 class="font-display text-[22px] text-on-surface mb-xs">Llámanos</h3>
+          <p class="font-body text-body-md text-on-surface-variant leading-normal">General: (555) 019-2834</p>
+          <p class="font-body text-body-md text-on-surface-variant leading-normal">Urgencias: (555) 019-9110</p>
+        </div>
+      </div>
+
+      <!-- Tarjeta de Correo -->
+      <div class="bg-surface border border-outline rounded-lg p-md flex items-start space-x-md hover:border-primary transition-all duration-300 shadow-[0_2px_8px_-4px_rgba(20,61,38,0.02)] group">
+        <div class="w-12 h-12 bg-primary/5 rounded-sm flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+          <span class="material-symbols-outlined text-primary text-[24px]">mail</span>
+        </div>
+        <div>
+          <h3 class="font-display text-[22px] text-on-surface mb-xs">Correo Electrónico</h3>
+          <p class="font-body text-body-md text-on-surface-variant leading-normal">info@medclinic.com</p>
+          <p class="font-body text-body-md text-on-surface-variant leading-normal">citas@medclinic.com</p>
+        </div>
+      </div>
+
+      <!-- Tarjeta de Ubicación -->
+      <div class="bg-surface border border-outline rounded-lg p-md flex items-start space-x-md hover:border-primary transition-all duration-300 shadow-[0_2px_8px_-4px_rgba(20,61,38,0.02)] group">
+        <div class="w-12 h-12 bg-primary/5 rounded-sm flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+          <span class="material-symbols-outlined text-primary text-[24px]">location_on</span>
+        </div>
+        <div>
+          <h3 class="font-display text-[22px] text-on-surface mb-xs">Visítanos</h3>
+          <p class="font-body text-body-md text-on-surface-variant leading-normal">1200 Healthcare Drive, Suite 400</p>
+          <p class="font-body text-body-md text-on-surface-variant leading-normal">Metropolitan District, NY 10001</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mapa y Formulario de Contacto -->
+    <LocationContact />
+  </main>
+</LayoutBase>

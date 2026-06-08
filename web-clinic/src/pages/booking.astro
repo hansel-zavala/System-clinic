@@ -1,0 +1,846 @@
+---
+import '../styles/global.css';
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Reservar Cita - MedClinic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col font-body text-body-md selection:bg-primary-container selection:text-on-primary-container relative">
+
+  <!-- Encabezado Transaccional -->
+  <header class="w-full py-md px-margin-mobile md:px-gutter max-w-max-width mx-margin-desktop flex justify-between items-center border-b border-outline bg-surface">
+    <a href="/" class="flex items-center gap-sm group">
+      <span class="material-symbols-outlined text-primary text-[28px] group-hover:scale-105 transition-transform" style="font-variation-settings: 'FILL' 1;">medical_services</span>
+      <span class="font-display text-[26px] font-medium text-primary tracking-tight">MedClinic</span>
+    </a>
+    <a class="flex items-center gap-xs text-primary hover:bg-surface-container-low px-sm py-xs rounded-sm transition-colors font-label-md text-label-md group" href="/">
+      <span class="material-symbols-outlined text-[18px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
+      <span>Volver al Inicio</span>
+    </a>
+  </header>
+
+  <!-- Contenido Principal: Interfaz del Chatbot -->
+  <main class="flex-grow flex items-center justify-center p-margin-mobile md:p-lg w-full max-w-max-width mx-margin-desktop">
+    <!-- Contenedor del Chatbot: Glassmorphism / Tarjeta Moderna -->
+    <div class="w-full max-w-3xl bg-surface border border-outline rounded-lg overflow-hidden shadow-[0_12px_40px_-8px_rgba(20,61,38,0.04)] flex flex-col h-[620px] min-h-[500px] max-h-[700px] relative">
+      
+      <!-- Encabezado del Chat -->
+      <div class="bg-surface-container-low px-md py-sm border-b border-outline flex items-center justify-between z-10">
+        <div class="flex items-center gap-sm">
+          <div class="relative">
+            <img 
+              alt="AI Assistant Avatar" 
+              class="w-11 h-11 rounded-full border-2 border-surface object-cover" 
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCF2VjBI-ZP0TEnpjsQADe3UzY8r3x8KJhnQ47AhMTqJDHf2ncNtXLBa4xQ-9KtLh0wOseAE13lZFfXw_hng4J0SeSTZBOaLlryxP43C8JTYHfhVJT_-Lpw4TdI12DwmZYRHi0VPHJVhNnpP2c1rfswZKY_OvehH9k0OJ1E9lrVDEm9-ZadHqdLzgDXsVAQJxuuJZjA5ppQI0eC1FDAZ1C3wK9aqbPRB8LKu2uuo0ObWctiaXGSZv0mWEcTymO6nS6hGOhlN51qlOI"
+            />
+            <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#2E7D32] border-2 border-surface rounded-full"></span>
+          </div>
+          <div>
+            <h2 class="font-body font-bold text-label-md text-on-surface">Asistente de Reservas</h2>
+            <p class="font-caption text-caption text-on-surface-variant flex items-center gap-1">
+              <span class="material-symbols-outlined text-[14px]">bolt</span> Generalmente responde al instante
+            </p>
+          </div>
+        </div>
+        <button 
+          aria-label="Reiniciar conversación" 
+          class="text-on-surface-variant hover:text-primary transition-colors p-xs rounded-full hover:bg-surface-container-high cursor-pointer"
+          id="chatbot-reset"
+        >
+          <span class="material-symbols-outlined">refresh</span>
+        </button>
+      </div>
+
+      <!-- Área de Mensajes de Chat -->
+      <div 
+        class="flex-grow overflow-y-auto p-md flex flex-col gap-sm bg-background no-scrollbar scroll-smooth" 
+        id="chat-canvas"
+      >
+        <!-- La conversación dinámica se renderiza aquí -->
+      </div>
+
+      <!-- Área de Entrada de Texto -->
+      <div class="p-sm md:p-md border-t border-outline bg-surface z-10 flex flex-col gap-xs">
+        <form class="flex gap-sm items-end relative" id="chat-input-form">
+          <div class="flex-grow relative">
+            <textarea 
+              class="w-full bg-surface-container-low border border-outline rounded-sm px-sm py-sm pr-10 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-body text-body-md text-on-surface resize-none no-scrollbar" 
+              placeholder="Escribe tu mensaje aquí..." 
+              rows="1" 
+              style="min-height: 44px; max-height: 100px;"
+              id="chat-textarea"
+            ></textarea>
+          </div>
+          <button 
+            class="bg-primary text-surface rounded-sm hover:bg-opacity-95 transition-colors flex-shrink-0 w-11 h-11 flex items-center justify-center shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" 
+            type="submit"
+            id="chat-send-btn"
+            disabled
+          >
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
+          </button>
+        </form>
+        <div class="text-center">
+          <span class="font-caption text-caption text-on-surface-variant text-[10px]">La información compartida es segura y cumple con las normativas de confidencialidad HIPAA.</span>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    const API_URL = 'http://localhost:4000';
+
+    interface BookingData {
+      name?: string;
+      phone?: string;
+      reason?: string;
+      notes?: string;
+      time?: string;
+      isoTime?: string;
+    }
+
+    let step = 0; // 0: ask name, 1: ask phone, 2: ask reason, 2.5: ask symptoms, 3: ask time/date
+    let booking: BookingData = {};
+
+    const resetBtn = document.getElementById('chatbot-reset');
+    const canvas = document.getElementById('chat-canvas');
+    const form = document.getElementById('chat-input-form') as HTMLFormElement | null;
+    const textarea = document.getElementById('chat-textarea') as HTMLTextAreaElement | null;
+    const sendBtn = document.getElementById('chat-send-btn') as HTMLButtonElement | null;
+
+    // Reset button handler
+    resetBtn?.addEventListener('click', restartChat);
+
+    // Auto-resize textarea y activar/desactivar botón de envío
+    textarea?.addEventListener('input', () => {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 100)}px`;
+      
+      if (sendBtn) {
+        sendBtn.disabled = textarea.value.trim().length === 0;
+      }
+    });
+
+    // Manejar envío del formulario
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = textarea?.value.trim();
+      if (!text || !textarea || !sendBtn) return;
+
+      textarea.value = '';
+      textarea.style.height = 'auto';
+      sendBtn.disabled = true;
+
+      handleUserMessage(text);
+    });
+
+    textarea?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        form?.dispatchEvent(new Event('submit'));
+      }
+    });
+
+    function scrollToBottom() {
+      if (canvas) {
+        canvas.scrollTop = canvas.scrollHeight;
+      }
+    }
+
+    function appendBotMessage(htmlContent: string) {
+      if (!canvas) return;
+
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'flex items-start gap-sm max-w-[90%] animate-fade-in';
+      messageDiv.innerHTML = `
+        <div class="w-8 h-8 rounded-full bg-primary-fixed text-primary flex items-center justify-center flex-shrink-0 mt-1 border border-outline">
+          <span class="material-symbols-outlined text-[18px]">smart_toy</span>
+        </div>
+        <div class="flex flex-col gap-xs w-full">
+          ${htmlContent}
+          <span class="font-caption text-[10px] text-on-surface-variant ml-1">${getCurrentTimeStr()}</span>
+        </div>
+      `;
+      canvas.appendChild(messageDiv);
+      scrollToBottom();
+    }
+
+    function appendUserMessage(text: string) {
+      if (!canvas) return;
+
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'flex items-start gap-sm justify-end max-w-[85%] self-end animate-fade-in';
+      messageDiv.innerHTML = `
+        <div class="flex flex-col gap-xs items-end">
+          <div class="bg-primary-container text-on-primary-container p-sm rounded-lg rounded-tr-sm font-body text-body-md shadow-sm border border-primary/10">
+            ${escapeHtml(text)}
+          </div>
+          <span class="font-caption text-[10px] text-on-surface-variant mr-1 flex items-center gap-1">
+            ${getCurrentTimeStr()} <span class="material-symbols-outlined text-[12px] text-primary">done_all</span>
+          </span>
+        </div>
+      `;
+      canvas.appendChild(messageDiv);
+      scrollToBottom();
+    }
+
+    function showTypingIndicator() {
+      if (!canvas) return null;
+
+      const indicator = document.createElement('div');
+      indicator.className = 'flex items-center gap-1 opacity-60 ml-10 py-xs animate-pulse';
+      indicator.id = 'chatbot-typing-indicator';
+      indicator.innerHTML = `
+        <span class="w-2 h-2 bg-primary rounded-full"></span>
+        <span class="w-2 h-2 bg-primary rounded-full"></span>
+        <span class="w-2 h-2 bg-primary rounded-full"></span>
+      `;
+      canvas.appendChild(indicator);
+      scrollToBottom();
+      return indicator;
+    }
+
+    function removeTypingIndicator() {
+      const indicator = document.getElementById('chatbot-typing-indicator');
+      indicator?.remove();
+    }
+
+    function getCurrentTimeStr() {
+      const now = new Date();
+      let hours = now.getHours();
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      return `${hours}:${minutes} ${ampm}`;
+    }
+
+    function escapeHtml(str: string) {
+      return str.replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+    }
+
+    // Validación de Nombre y Apellido (mínimo dos palabras)
+    function isValidFullName(fullName: string): boolean {
+      const nameParts = fullName.trim().split(/\s+/);
+      return nameParts.length >= 2 && nameParts[0].length >= 2 && nameParts[1].length >= 2;
+    }
+
+    // Manejo de Estados de Conversación
+    function handleUserMessage(text: string) {
+      appendUserMessage(text);
+
+      if (step === 0) {
+        if (!isValidFullName(text)) {
+          const indicator = showTypingIndicator();
+          setTimeout(() => {
+            removeTypingIndicator();
+            appendBotMessage(`
+              <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+                Por favor, introduce tu <b>nombre y apellido</b> (mínimo dos palabras de al menos 2 letras cada una) para poder registrar tu perfil (ej. Juan Pérez).
+              </div>
+            `);
+            if (textarea) {
+              textarea.placeholder = "Escribe tu nombre y apellido...";
+            }
+          }, 800);
+          return;
+        }
+
+        booking.name = text.trim();
+        step = 1;
+        
+        const indicator = showTypingIndicator();
+        setTimeout(() => {
+          removeTypingIndicator();
+          askPhone();
+        }, 800);
+      } else if (step === 1) {
+        const cleanPhone = text.replace(/\D/g, '');
+        if (cleanPhone.length !== 8) {
+          const indicator = showTypingIndicator();
+          setTimeout(() => {
+            removeTypingIndicator();
+            appendBotMessage(`
+              <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+                Por favor, ingresa un número de teléfono válido de <b>8 dígitos</b> (ej. 8888-8888).
+              </div>
+            `);
+            if (textarea) {
+              textarea.placeholder = "Escribe tu teléfono...";
+            }
+          }, 800);
+          return;
+        }
+
+        booking.phone = cleanPhone;
+        step = 2;
+        const indicator = showTypingIndicator();
+        setTimeout(() => {
+          removeTypingIndicator();
+          askReason();
+        }, 800);
+      } else if (step === 2.5) {
+        booking.notes = text.trim();
+        step = 3;
+
+        if (textarea) {
+          textarea.disabled = true;
+          textarea.placeholder = "Selecciona un horario abajo...";
+        }
+
+        const indicator = showTypingIndicator();
+        setTimeout(() => {
+          removeTypingIndicator();
+          askTime();
+        }, 800);
+      }
+    }
+
+    function askName() {
+      appendBotMessage(`
+        <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+          ¡Hola! Soy el Asistente de Reservas de MedClinic. Estoy aquí para ayudarte a programar tu visita de forma rápida y segura.
+        </div>
+        <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg font-body text-body-md shadow-sm mt-xs leading-relaxed">
+          Para comenzar, ¿podrías confirmar tu nombre y apellido completo?
+        </div>
+      `);
+      if (textarea) {
+        textarea.disabled = false;
+        textarea.placeholder = "Escribe tu nombre y apellido...";
+      }
+    }
+
+    function askPhone() {
+      appendBotMessage(`
+        <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+          Entendido, <b>${escapeHtml(booking.name || '')}</b>. ¿Cuál es tu número de teléfono de contacto?
+        </div>
+      `);
+      if (textarea) {
+        textarea.disabled = false;
+        textarea.placeholder = "Escribe tu teléfono (ej. 8888-8888)...";
+        textarea.focus();
+      }
+    }
+
+    function askReason() {
+      appendBotMessage(`
+        <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+          Excelente. ¿Cuál es el motivo principal de tu visita hoy?
+        </div>
+      `);
+
+      if (textarea) {
+        textarea.disabled = true;
+        textarea.placeholder = "Selecciona un motivo arriba...";
+      }
+
+      const chipsDiv = document.createElement('div');
+      chipsDiv.className = 'flex flex-wrap gap-xs pl-10 mt-1 animate-fade-in';
+      
+      const options = [
+        { label: 'Chequeo General', icon: 'stethoscope' },
+        { label: 'Vacunación', icon: 'vaccines' },
+        { label: 'Renovación de Receta', icon: 'prescriptions' }
+      ];
+
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'border border-outline bg-surface text-on-surface px-sm py-xs rounded-full hover:border-primary hover:text-primary hover:bg-primary/5 transition-all font-label-md text-label-md flex items-center gap-1 cursor-pointer active:scale-95 shadow-sm';
+        btn.innerHTML = `<span class="material-symbols-outlined text-[16px]">${opt.icon}</span> ${opt.label}`;
+        btn.addEventListener('click', () => {
+          chipsDiv.remove();
+          booking.reason = opt.label;
+          appendUserMessage(opt.label);
+          step = 2.5;
+          
+          showTypingIndicator();
+          setTimeout(() => {
+            removeTypingIndicator();
+            askSymptoms();
+          }, 800);
+        });
+        chipsDiv.appendChild(btn);
+      });
+
+      canvas?.appendChild(chipsDiv);
+      scrollToBottom();
+    }
+
+    function askSymptoms() {
+      appendBotMessage(`
+        <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+          Por favor, describe brevemente los síntomas, dolencias o el problema de consulta por el que deseas visitarnos:
+        </div>
+      `);
+      if (textarea) {
+        textarea.disabled = false;
+        textarea.placeholder = "Describe tus síntomas...";
+        textarea.focus();
+      }
+    }
+
+    function getNextWorkingDays() {
+      const dates = [];
+      const now = new Date();
+      let count = 0;
+      let offset = 1;
+
+      while (count < 3 && offset < 10) {
+        const d = new Date(now.getTime() + offset * 24 * 60 * 60 * 1000);
+        const day = d.getDay();
+        if (day !== 0) { // Excluir domingos
+          dates.push(d);
+          count++;
+        }
+        offset++;
+      }
+      return dates;
+    }
+
+    function askTime() {
+      appendBotMessage(`
+        <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+          Comprendo. Vamos a verificar qué horarios tenemos libres en el sistema. ¿Cuál de estos horarios sugeridos para los próximos días laborables te queda mejor?
+        </div>
+      `);
+
+      const timesGrid = document.createElement('div');
+      timesGrid.className = 'grid grid-cols-2 gap-sm mt-xs w-full max-w-sm pl-10 animate-fade-in';
+      
+      const nextDays = getNextWorkingDays();
+      const hours = [
+        { time: '09:00 AM', h: 9 },
+        { time: '11:00 AM', h: 11 },
+        { time: '03:00 PM', h: 15 }
+      ];
+
+      const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+      // Generar 3 combinaciones de fechas y horas
+      const slots = [
+        { dateObj: nextDays[0], hour: hours[0] }, // Día 1 - 9am
+        { dateObj: nextDays[1], hour: hours[1] }, // Día 2 - 11am
+        { dateObj: nextDays[2], hour: hours[2] }  // Día 3 - 3pm
+      ];
+
+      slots.forEach(slot => {
+        const d = new Date(slot.dateObj);
+        d.setHours(slot.hour.h, 0, 0, 0);
+        
+        // Ajustamos la fecha a un string ISO
+        const isoString = d.toISOString();
+        const dateLabel = `${daysOfWeek[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
+        const timeLabel = slot.hour.time;
+
+        const btn = document.createElement('button');
+        btn.className = 'bg-surface border border-outline hover:border-primary hover:shadow-sm p-sm rounded-sm flex flex-col items-center justify-center transition-all group cursor-pointer active:scale-95';
+        btn.innerHTML = `
+          <span class="font-label-md text-label-md text-on-surface group-hover:text-primary">${dateLabel}</span>
+          <span class="font-caption text-caption text-on-surface-variant">${timeLabel}</span>
+        `;
+        btn.addEventListener('click', async () => {
+          timesGrid.remove();
+          appendUserMessage(`${dateLabel} (${timeLabel})`);
+          
+          const indicator = showTypingIndicator();
+          try {
+            // Consultar disponibilidad al backend
+            const res = await fetch(`${API_URL}/api/clinic/availability?fechaISO=${encodeURIComponent(isoString)}`);
+            const data = await res.json();
+            removeTypingIndicator();
+
+            if (data.ok && data.libre) {
+              booking.isoTime = isoString;
+              booking.time = `${dateLabel} a las ${timeLabel}`;
+              
+              // Intentar registrar la cita
+              submitBooking();
+            } else {
+              appendBotMessage(`
+                <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+                  Lo sentimos, ese espacio de tiempo ya no está libre. Por favor, selecciona otra opción o pulsa "Ver más horarios".
+                </div>
+              `);
+              askTime();
+            }
+          } catch (err) {
+            removeTypingIndicator();
+            appendBotMessage(`
+              <div class="bg-surface border border-outline text-[#C62828] p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+                Error de comunicación con la clínica al verificar disponibilidad. Volvamos a intentarlo.
+              </div>
+            `);
+            askTime();
+          }
+        });
+        timesGrid.appendChild(btn);
+      });
+
+      // Botón "Ver más horarios"
+      const moreBtn = document.createElement('button');
+      moreBtn.className = 'bg-surface border border-dashed border-outline hover:border-primary hover:bg-primary/5 p-sm rounded-sm flex flex-col items-center justify-center transition-all text-primary cursor-pointer active:scale-95';
+      moreBtn.innerHTML = `
+        <span class="material-symbols-outlined mb-1">calendar_month</span>
+        <span class="font-caption text-caption">Ver más horarios</span>
+      `;
+      moreBtn.addEventListener('click', () => {
+        timesGrid.remove();
+        appendUserMessage("Solicitar otro horario");
+        showTypingIndicator();
+        setTimeout(() => {
+          removeTypingIndicator();
+          showCustomDateTimePicker();
+        }, 500);
+      });
+      timesGrid.appendChild(moreBtn);
+
+      canvas?.appendChild(timesGrid);
+      scrollToBottom();
+    }
+
+    function showCustomDateTimePicker() {
+      appendBotMessage(`
+        <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+          Por favor, selecciona el día y la hora de tu preferencia mediante el siguiente calendario interactivo:
+        </div>
+      `);
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const minDate = `${year}-${month}-${day}T08:00`;
+
+      const pickerDiv = document.createElement('div');
+      pickerDiv.className = 'bg-surface border border-outline p-sm rounded-lg flex flex-col gap-sm w-full max-w-xs ml-10 mt-xs animate-fade-in shadow-sm';
+      pickerDiv.innerHTML = `
+        <label class="font-label-md text-label-md text-on-surface">Fecha y Hora:</label>
+        <input type="datetime-local" id="custom-datetime-input" class="bg-surface-container-low border border-outline rounded-sm px-xs py-xs text-body-md text-on-surface" min="${minDate}" step="1800">
+        <button id="btn-check-custom" class="bg-primary text-surface rounded-sm py-xs font-label-md text-label-md hover:bg-opacity-95 transition-all cursor-pointer font-bold">Verificar Disponibilidad</button>
+        <div id="custom-status-msg" class="text-caption font-caption text-on-surface-variant hidden"></div>
+        <button id="btn-confirm-custom" class="bg-[#2E7D32] text-surface rounded-sm py-xs font-label-md text-label-md hover:bg-opacity-95 transition-all cursor-pointer hidden font-bold">Agendar este Horario</button>
+      `;
+
+      canvas?.appendChild(pickerDiv);
+      scrollToBottom();
+
+      const input = pickerDiv.querySelector('#custom-datetime-input') as HTMLInputElement;
+      const btnCheck = pickerDiv.querySelector('#btn-check-custom') as HTMLButtonElement;
+      const btnConfirm = pickerDiv.querySelector('#btn-confirm-custom') as HTMLButtonElement;
+      const statusMsg = pickerDiv.querySelector('#custom-status-msg') as HTMLDivElement;
+
+      let selectedIso = '';
+
+      btnCheck.addEventListener('click', async () => {
+        const val = input.value;
+        if (!val) {
+          statusMsg.className = 'text-caption font-caption text-[#C62828]';
+          statusMsg.innerText = 'Por favor selecciona una fecha y hora.';
+          statusMsg.classList.remove('hidden');
+          return;
+        }
+
+        const dateVal = new Date(val);
+        if (dateVal.getTime() < now.getTime()) {
+          statusMsg.className = 'text-caption font-caption text-[#C62828]';
+          statusMsg.innerText = 'La fecha seleccionada no puede ser en el pasado.';
+          statusMsg.classList.remove('hidden');
+          return;
+        }
+
+        btnCheck.disabled = true;
+        btnCheck.innerText = 'Verificando...';
+        selectedIso = dateVal.toISOString();
+
+        try {
+          const res = await fetch(`${API_URL}/api/clinic/availability?fechaISO=${encodeURIComponent(selectedIso)}`);
+          const data = await res.json();
+
+          if (data.ok && data.libre) {
+            statusMsg.className = 'text-caption font-caption text-[#2E7D32] font-semibold';
+            statusMsg.innerText = '¡El horario seleccionado está disponible!';
+            statusMsg.classList.remove('hidden');
+            
+            btnCheck.classList.add('hidden');
+            btnConfirm.classList.remove('hidden');
+            input.disabled = true;
+          } else {
+            statusMsg.className = 'text-caption font-caption text-[#C62828]';
+            statusMsg.innerText = 'Este horario no está disponible (médico u oficina ocupados). Elige otro.';
+            statusMsg.classList.remove('hidden');
+            btnCheck.disabled = false;
+            btnCheck.innerText = 'Verificar Disponibilidad';
+          }
+        } catch (err) {
+          statusMsg.className = 'text-caption font-caption text-[#C62828]';
+          statusMsg.innerText = 'Error al consultar. Inténtalo de nuevo.';
+          statusMsg.classList.remove('hidden');
+          btnCheck.disabled = false;
+          btnCheck.innerText = 'Verificar Disponibilidad';
+        }
+      });
+
+      btnConfirm.addEventListener('click', () => {
+        pickerDiv.remove();
+        const dateVal = new Date(input.value);
+        const dateLabel = dateVal.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+        const timeLabel = dateVal.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
+        
+        appendUserMessage(`${dateLabel} a las ${timeLabel}`);
+        booking.isoTime = selectedIso;
+        booking.time = `${dateLabel} a las ${timeLabel}`;
+        
+        submitBooking();
+      });
+    }
+
+    async function submitBooking() {
+      const indicator = showTypingIndicator();
+      try {
+        const res = await fetch(`${API_URL}/api/clinic/chatbot-booking`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nombre: booking.name,
+            telefono: booking.phone,
+            fechaISO: booking.isoTime,
+            motivo: booking.reason,
+            notas: booking.notes || 'Agendado mediante el Asistente Virtual de la Clínica'
+          })
+        });
+
+        removeTypingIndicator();
+        const data = await res.json();
+
+        if (res.ok && data.ok) {
+          // Guardar información en localStorage para bloqueo anti-troll
+          localStorage.setItem('medclinic_active_booking', JSON.stringify({
+            name: booking.name,
+            phone: booking.phone,
+            reason: booking.reason,
+            notes: booking.notes,
+            fechaISO: data.appointment.fechaISO
+          }));
+          completeBooking(data.appointment);
+        } else {
+          appendBotMessage(`
+            <div class="bg-surface border border-outline text-[#C62828] p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+              No pudimos completar la reserva: ${escapeHtml(data.error || 'Por favor, intenta de nuevo.')}
+            </div>
+          `);
+          askTime();
+        }
+      } catch (err) {
+        removeTypingIndicator();
+        appendBotMessage(`
+          <div class="bg-surface border border-outline text-[#C62828] p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+            Error de conexión al registrar la cita. Por favor, revisa tu conexión e inténtalo de nuevo.
+          </div>
+        `);
+        askTime();
+      }
+    }
+
+    function completeBooking(appointment: any) {
+      appendBotMessage(`
+        <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+          ¡Perfecto! Tu cita ha sido creada con éxito en tiempo real. Aquí tienes tu resumen:
+        </div>
+      `);
+
+      const formattedDate = new Date(appointment.fechaISO).toLocaleString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+
+      const summaryCard = document.createElement('div');
+      summaryCard.className = 'border border-outline bg-surface rounded-lg p-md shadow-[0_4px_12px_-4px_rgba(20,61,38,0.04)] space-y-sm max-w-sm mt-1 ml-10 animate-fade-in';
+      summaryCard.innerHTML = `
+        <div class="flex items-center gap-xs text-primary font-bold font-label-md text-label-md">
+          <span class="material-symbols-outlined text-[18px]">verified</span>
+          <span>Reserva Confirmada</span>
+        </div>
+        <div class="divide-y divide-outline/50 font-body text-body-md text-on-surface-variant">
+          <div class="py-xs flex justify-between gap-sm">
+            <span class="font-medium text-on-surface-variant">Paciente:</span>
+            <span class="text-on-surface text-right font-semibold">${escapeHtml(booking.name || '')}</span>
+          </div>
+          <div class="py-xs flex justify-between gap-sm">
+            <span class="font-medium text-on-surface-variant">Teléfono:</span>
+            <span class="text-on-surface text-right">${escapeHtml(booking.phone || '')}</span>
+          </div>
+          <div class="py-xs flex justify-between gap-sm">
+            <span class="font-medium text-on-surface-variant">Motivo:</span>
+            <span class="text-on-surface text-right">${escapeHtml(booking.reason || '')}</span>
+          </div>
+          <div class="py-xs flex justify-between gap-sm">
+            <span class="font-medium text-on-surface-variant">Descripción:</span>
+            <span class="text-on-surface text-right">${escapeHtml(booking.notes || 'Ninguna')}</span>
+          </div>
+          <div class="py-xs flex justify-between gap-sm text-right">
+            <span class="font-medium text-on-surface-variant">Fecha y Hora:</span>
+            <span class="font-bold text-primary pl-xs">${escapeHtml(formattedDate)}</span>
+          </div>
+          <div class="py-xs flex justify-between gap-sm">
+            <span class="font-medium text-on-surface-variant">Ubicación:</span>
+            <span class="text-on-surface text-right">Sede MedClinic, Suite 400</span>
+          </div>
+        </div>
+      `;
+      canvas?.appendChild(summaryCard);
+
+      setTimeout(() => {
+        appendBotMessage(`
+          <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+            Te hemos enviado una confirmación por mensaje de texto. Puedes volver al inicio cuando lo desees.
+          </div>
+        `);
+        if (textarea) {
+          textarea.disabled = true;
+          textarea.placeholder = "Reserva completada.";
+        }
+      }, 700);
+
+      scrollToBottom();
+    }
+
+    function showExistingBooking(appt: any) {
+      appendBotMessage(`
+        <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+          ¡Hola de nuevo! Detectamos que ya cuentas con una cita registrada activa en este navegador. Aquí tienes el resumen:
+        </div>
+      `);
+
+      const formattedDate = new Date(appt.fechaISO).toLocaleString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+
+      const summaryCard = document.createElement('div');
+      summaryCard.className = 'border border-outline bg-surface rounded-lg p-md shadow-[0_4px_12px_-4px_rgba(20,61,38,0.04)] space-y-sm max-w-sm mt-1 ml-10 animate-fade-in';
+      summaryCard.innerHTML = `
+        <div class="flex items-center gap-xs text-[#2E7D32] font-bold font-label-md text-label-md">
+          <span class="material-symbols-outlined text-[18px]">verified</span>
+          <span>Cita Programada Activa</span>
+        </div>
+        <div class="divide-y divide-outline/50 font-body text-body-md text-on-surface-variant">
+          <div class="py-xs flex justify-between gap-sm">
+            <span class="font-medium text-on-surface-variant">Paciente:</span>
+            <span class="text-on-surface text-right font-semibold">${escapeHtml(appt.name || '')}</span>
+          </div>
+          <div class="py-xs flex justify-between gap-sm">
+            <span class="font-medium text-on-surface-variant">Teléfono:</span>
+            <span class="text-on-surface text-right">${escapeHtml(appt.phone || '')}</span>
+          </div>
+          <div class="py-xs flex justify-between gap-sm">
+            <span class="font-medium text-on-surface-variant">Motivo:</span>
+            <span class="text-on-surface text-right">${escapeHtml(appt.reason || '')}</span>
+          </div>
+          <div class="py-xs flex justify-between gap-sm">
+            <span class="font-medium text-on-surface-variant">Descripción:</span>
+            <span class="text-on-surface text-right">${escapeHtml(appt.notes || 'Ninguna')}</span>
+          </div>
+          <div class="py-xs flex justify-between gap-sm text-right">
+            <span class="font-medium text-on-surface-variant">Fecha y Hora:</span>
+            <span class="font-bold text-primary pl-xs">${escapeHtml(formattedDate)}</span>
+          </div>
+        </div>
+      `;
+      canvas?.appendChild(summaryCard);
+
+      setTimeout(() => {
+        appendBotMessage(`
+          <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+            Por motivos de seguridad, solo se permite agendar una cita por día desde este asistente virtual. Si necesitas realizar algún cambio, cancelar o reagendar tu cita activa, por favor llama a soporte al <b>(555) 019-2834</b>.
+          </div>
+        `);
+        if (textarea) {
+          textarea.disabled = true;
+          textarea.placeholder = "Cita activa registrada.";
+        }
+      }, 700);
+
+      scrollToBottom();
+    }
+
+    function restartChat() {
+      const activeBooking = localStorage.getItem('medclinic_active_booking');
+      if (activeBooking) {
+        appendBotMessage(`
+          <div class="bg-surface border border-outline text-[#C62828] p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+            No es posible reiniciar la conversación ya que cuentas con una cita registrada activa en este navegador. Si necesitas ayuda adicional, por favor llama al (555) 019-2834.
+          </div>
+        `);
+        return;
+      }
+
+      if (!canvas) return;
+      canvas.innerHTML = `
+        <div class="flex justify-center my-xs">
+          <span class="bg-surface-container-low text-on-surface-variant font-caption text-caption px-sm py-xs rounded-full">Conversación Reiniciada</span>
+        </div>
+      `;
+      step = 0;
+      booking = {};
+      if (textarea) {
+        textarea.value = '';
+        textarea.disabled = false;
+        textarea.placeholder = "Escribe tu nombre y apellido...";
+        textarea.style.height = 'auto';
+      }
+      if (sendBtn) sendBtn.disabled = true;
+      askName();
+    }
+
+    // Inicializar conversación
+    document.addEventListener('DOMContentLoaded', () => {
+      if (canvas) {
+        canvas.innerHTML = `
+          <div class="flex justify-center my-xs">
+            <span class="bg-surface-container-low text-on-surface-variant font-caption text-caption px-sm py-xs rounded-full">Hoy</span>
+          </div>
+        `;
+      }
+      
+      const activeBooking = localStorage.getItem('medclinic_active_booking');
+      if (activeBooking) {
+        try {
+          const appt = JSON.parse(activeBooking);
+          showExistingBooking(appt);
+        } catch (e) {
+          localStorage.removeItem('medclinic_active_booking');
+          askName();
+        }
+      } else {
+        askName();
+      }
+    });
+  </script>
+</body>
+</html>
