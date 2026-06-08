@@ -194,12 +194,30 @@ const radialItems = computed(() => {
   return [...firstLayer, ...secondLayer]
 })
 
+let sseSource: EventSource | undefined
+
 onMounted(() => {
   document.addEventListener('mousedown', handleOutsideClick)
+  
+  const apiBase = () => import.meta.env.VITE_API_URL ?? 'http://localhost:4000'
+  sseSource = new EventSource(`${apiBase()}/api/clinic/qr-scan-stream`)
+  sseSource.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data)
+      if (data && data.appointmentId) {
+        router.push({ path: '/app/detalle-cita', query: { id: data.appointmentId } })
+      }
+    } catch (err) {
+      console.error('[SSE] Error processing QR scan message:', err)
+    }
+  }
 })
 
 onUnmounted(() => {
   document.removeEventListener('mousedown', handleOutsideClick)
+  if (sseSource) {
+    sseSource.close()
+  }
 })
 </script>
 

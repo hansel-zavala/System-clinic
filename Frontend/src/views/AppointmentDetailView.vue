@@ -191,8 +191,8 @@ import {
   Timer,
   X,
 } from 'lucide-vue-next'
-import { computed, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 import PageHero from '../components/layout/PageHero.vue'
 import StatusBadge from '../components/ui/StatusBadge.vue'
 import { formatDateOnlyEs, formatDateTimeSystem, formatTimeSystem } from '../domain/datetimeDisplay'
@@ -201,6 +201,7 @@ import type { AppointmentView } from '../domain/types'
 import { useClinicUiStore } from '../stores/ui'
 
 const store = useClinicUiStore()
+const route = useRoute()
 const message = ref('')
 
 const motivoLabel = (m: AppointmentView['motivo']) => motivoConsultaLabel(m, 'short')
@@ -208,11 +209,21 @@ const motivoLabel = (m: AppointmentView['motivo']) => motivoConsultaLabel(m, 'sh
 const sortedAppointments = computed(() =>
   store.roleVisibleAppointments.slice().sort((a, b) => new Date(b.fechaISO).getTime() - new Date(a.fechaISO).getTime()),
 )
-const selectedId = ref<string>('')
+const selectedId = ref<string>((route.query.id as string) || '')
+
+watch(
+  () => route.query.id,
+  (newId) => {
+    if (newId) {
+      selectedId.value = newId as string
+    }
+  }
+)
+
 const appointment = computed(() => {
   if (!sortedAppointments.value.length) return null
   if (!selectedId.value) {
-    selectedId.value = sortedAppointments.value[0].id
+    selectedId.value = (route.query.id as string) || sortedAppointments.value[0].id
   }
   return sortedAppointments.value.find((item) => item.id === selectedId.value) ?? sortedAppointments.value[0]
 })

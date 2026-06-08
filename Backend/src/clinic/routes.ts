@@ -37,6 +37,7 @@ import { registerProfilePhotoRoute } from './profilePhotoUpload.js'
 import type { DbUser } from './mappers.js'
 
 const bookingIPLimitMap = new Map<string, number[]>()
+let sseClients: any[] = []
 
 async function upsertAndPrune(
   supabase: SupabaseClient,
@@ -121,6 +122,213 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
   })
 
   registerProfilePhotoRoute(app, supabase)
+
+  app.get('/api/clinic/qr-scan-stream', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.setHeader('Connection', 'keep-alive')
+    res.flushHeaders()
+
+    sseClients.push(res)
+
+    const heartbeat = setInterval(() => {
+      res.write(': heartbeat\n\n')
+    }, 30000)
+
+    req.on('close', () => {
+      clearInterval(heartbeat)
+      sseClients = sseClients.filter((client) => client !== res)
+    })
+  })
+
+  app.get('/api/clinic/scan-qr', async (req, res) => {
+    if (!supabase) {
+      return res.status(503).send('Supabase no configurado.')
+    }
+    const appointmentId = req.query.id as string
+    if (!appointmentId) {
+      return res.status(400).send('Falta el ID de la cita.')
+    }
+
+    try {
+      const { data: appData, error: appErr } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('id', appointmentId)
+        .single()
+
+      if (appErr || !appData) {
+        return res.status(404).send('Cita no encontrada.')
+      }
+
+      const { data: patientData, error: patErr } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('id', appData.paciente_id)
+        .single()
+
+      let patientName = 'Paciente'
+      if (patientData && !patErr) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('nombre')
+          .eq('id', patientData.user_id)
+          .single()
+        if (userData) {
+          patientName = userData.nombre
+        }
+      }
+
+      sseClients.forEach((client) => {
+        client.write(`data: ${JSON.stringify({ appointmentId })}\n\n`)
+      })
+
+      res.send(`
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Check-in Exitoso — Clinica Aura</title>
+          <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Cormorant+Garamond:ital,wght@1,500&display=swap" rel="stylesheet">
+          <style>
+            :root {
+              --primary: #3a8fb7;
+              --secondary: #5db0a9;
+              --primary-dark: #19384c;
+              --bg: #0c1d29;
+              --card: rgba(25, 56, 76, 0.45);
+              --border: rgba(120, 160, 188, 0.22);
+              --text: #f0f8ff;
+              --text-muted: #88a0bc;
+              --success: #25d366;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              font-family: 'Outfit', sans-serif;
+              background: radial-gradient(circle at center, #13344c 0%, #0b1d29 100%);
+              color: var(--text);
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+              box-sizing: border-box;
+            }
+            .container {
+              width: 100%;
+              max-width: 440px;
+              padding: 20px;
+              text-align: center;
+            }
+            .card {
+              background: var(--card);
+              backdrop-filter: blur(20px);
+              border: 1px solid var(--border);
+              border-radius: 24px;
+              padding: 40px 30px;
+              box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+              animation: slideIn 0.5s cubic-bezier(0.1, 1, 0.1, 1) both;
+            }
+            .icon-wrap {
+              width: 80px;
+              height: 80px;
+              border-radius: 999px;
+              background: rgba(37, 211, 102, 0.12);
+              border: 2px solid var(--success);
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              margin: 0 auto 24px;
+              animation: scaleUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s both;
+            }
+            .icon-wrap svg {
+              width: 40px;
+              height: 40px;
+              fill: none;
+              stroke: var(--success);
+              stroke-width: 3;
+              stroke-linecap: round;
+              stroke-linejoin: round;
+            }
+            h1 {
+              font-family: 'Cormorant Garamond', serif;
+              font-style: italic;
+              font-size: 2.2rem;
+              margin: 0 0 10px;
+              color: #fff;
+              font-weight: 500;
+            }
+            p.status {
+              font-size: 1rem;
+              color: var(--text-muted);
+              margin: 0 0 30px;
+              line-height: 1.5;
+            }
+            .patient-box {
+              background: rgba(255, 255, 255, 0.03);
+              border: 1px solid rgba(255, 255, 255, 0.05);
+              border-radius: 16px;
+              padding: 20px;
+              margin-bottom: 30px;
+            }
+            .label {
+              font-size: 0.75rem;
+              text-transform: uppercase;
+              letter-spacing: 0.08em;
+              color: var(--secondary);
+              font-weight: 700;
+              margin-bottom: 6px;
+            }
+            .value {
+              font-size: 1.25rem;
+              font-weight: 600;
+              color: #fff;
+            }
+            .footer-note {
+              font-size: 0.82rem;
+              color: var(--text-muted);
+              line-height: 1.45;
+            }
+            @keyframes slideIn {
+              from { transform: translateY(30px); opacity: 0; }
+              to { transform: translateY(0); opacity: 1; }
+            }
+            @keyframes scaleUp {
+              from { transform: scale(0.6); opacity: 0; }
+              to { transform: scale(1); opacity: 1; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="card">
+              <div class="icon-wrap">
+                <svg viewBox="0 0 24 24">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <h1>Check-in Completado</h1>
+              <p class="status">Tu cita ha sido escaneada exitosamente.</p>
+              
+              <div class="patient-box">
+                <div class="label">Paciente Registrado</div>
+                <div class="value">${patientName}</div>
+              </div>
+              
+              <div class="footer-note">
+                Los datos de tu consulta se han enviado a la pantalla de recepción. Por favor, toma asiento en la sala de espera.
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `)
+    } catch (e) {
+      console.error(e)
+      res.status(500).send('Error interno en el servidor.')
+    }
+  })
 
   app.get('/api/clinic/tables', async (_req, res) => {
     if (!supabase) {

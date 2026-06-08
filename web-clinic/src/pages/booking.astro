@@ -631,6 +631,7 @@ import '../styles/global.css';
         if (res.ok && data.ok) {
           // Guardar información en localStorage para bloqueo anti-troll
           localStorage.setItem('medclinic_active_booking', JSON.stringify({
+            id: data.appointment.id,
             name: booking.name,
             phone: booking.phone,
             reason: booking.reason,
@@ -710,6 +711,28 @@ import '../styles/global.css';
       `;
       canvas?.appendChild(summaryCard);
 
+      // QR Code check-in pass card
+      const scanUrl = `${API_URL}/api/clinic/scan-qr?id=${appointment.id}`;
+      const qrCard = document.createElement('div');
+      qrCard.className = 'border border-outline bg-surface rounded-lg p-md shadow-[0_4px_12px_-4px_rgba(20,61,38,0.04)] text-center max-w-sm mt-xs ml-10 animate-fade-in flex flex-col items-center gap-sm';
+      qrCard.innerHTML = `
+        <div class="font-bold font-label-md text-label-md text-primary flex items-center gap-xs">
+          <span class="material-symbols-outlined">qr_code_2</span>
+          <span>Pase de Check-in (Código QR)</span>
+        </div>
+        <div class="bg-white p-xs rounded-sm border border-outline">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(scanUrl)}" alt="Código QR de la cita" class="w-[180px] h-[180px] block">
+        </div>
+        <p class="font-caption text-caption text-on-surface-variant leading-normal">
+          Descarga este código QR. Al llegar a la clínica, escanéalo en la tablet de recepción para anunciarte automáticamente.
+        </p>
+        <a href="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(scanUrl)}" download="checkin_qr.png" target="_blank" class="w-full bg-primary text-surface rounded-sm py-xs hover:bg-opacity-95 font-label-md text-label-md font-bold transition-all text-center flex items-center justify-center gap-xs cursor-pointer">
+          <span class="material-symbols-outlined text-[18px]">download</span>
+          <span>Descargar Pase QR</span>
+        </a>
+      `;
+      canvas?.appendChild(qrCard);
+
       setTimeout(() => {
         appendBotMessage(`
           <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
@@ -773,6 +796,29 @@ import '../styles/global.css';
         </div>
       `;
       canvas?.appendChild(summaryCard);
+
+      if (appt.id) {
+        const scanUrl = `${API_URL}/api/clinic/scan-qr?id=${appt.id}`;
+        const qrCard = document.createElement('div');
+        qrCard.className = 'border border-outline bg-surface rounded-lg p-md shadow-[0_4px_12px_-4px_rgba(20,61,38,0.04)] text-center max-w-sm mt-xs ml-10 animate-fade-in flex flex-col items-center gap-sm';
+        qrCard.innerHTML = `
+          <div class="font-bold font-label-md text-label-md text-[#2E7D32] flex items-center gap-xs">
+            <span class="material-symbols-outlined">qr_code_2</span>
+            <span>Pase de Check-in (Código QR)</span>
+          </div>
+          <div class="bg-white p-xs rounded-sm border border-outline">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(scanUrl)}" alt="Código QR de la cita" class="w-[180px] h-[180px] block">
+          </div>
+          <p class="font-caption text-caption text-on-surface-variant leading-normal">
+            Descarga este código QR. Al llegar a la clínica, escanéalo en la tablet de recepción para anunciarte automáticamente.
+          </p>
+          <a href="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(scanUrl)}" download="checkin_qr.png" target="_blank" class="w-full bg-[#2E7D32] text-surface rounded-sm py-xs hover:bg-opacity-95 font-label-md text-label-md font-bold transition-all text-center flex items-center justify-center gap-xs cursor-pointer">
+            <span class="material-symbols-outlined text-[18px]">download</span>
+            <span>Descargar Pase QR</span>
+          </a>
+        `;
+        canvas?.appendChild(qrCard);
+      }
 
       setTimeout(() => {
         appendBotMessage(`
