@@ -92,18 +92,69 @@
       </div>
 
       <div class="actions">
+        <!-- Aceptar cita: habilitado si está pendiente -->
         <button
+          v-if="appointment.estado === 'pendiente'"
+          type="button"
+          class="btn btn-success"
+          @click="onConfirm"
+        >
+          <Check :size="18" aria-hidden="true" />
+          Aceptar cita
+        </button>
+
+        <!-- No aceptar (Rechazar) cita: habilitado si está pendiente -->
+        <button
+          v-if="appointment.estado === 'pendiente'"
           type="button"
           class="btn btn-danger"
-          :disabled="appointment.estado === 'cancelada'"
+          @click="onReject"
+        >
+          <X :size="18" aria-hidden="true" />
+          No aceptar
+        </button>
+
+        <!-- Terminar consulta: habilitado si está confirmada -->
+        <button
+          v-if="appointment.estado === 'confirmada'"
+          type="button"
+          class="btn btn-success"
+          @click="onComplete"
+        >
+          <CheckSquare :size="18" aria-hidden="true" />
+          Terminar consulta
+        </button>
+
+        <!-- WhatsApp: habilitado si está confirmada -->
+        <button
+          v-if="appointment.estado === 'confirmada'"
+          type="button"
+          class="btn btn-whatsapp"
+          @click="onSendWhatsApp"
+        >
+          <MessageCircle :size="18" aria-hidden="true" />
+          WhatsApp
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-secondary"
+          :disabled="appointment.estado === 'cancelada' || appointment.estado === 'completada' || appointment.estado === 'no_aceptada'"
+          @click="onReschedule"
+        >
+          <CalendarClock :size="18" aria-hidden="true" />
+          Reagendar (+1 día)
+        </button>
+
+        <button
+          v-if="appointment.estado !== 'pendiente'"
+          type="button"
+          class="btn btn-danger"
+          :disabled="appointment.estado === 'cancelada' || appointment.estado === 'completada' || appointment.estado === 'no_aceptada'"
           @click="onCancel"
         >
           <Ban :size="18" aria-hidden="true" />
           Cancelar cita
-        </button>
-        <button type="button" class="btn btn-secondary" @click="onReschedule">
-          <CalendarClock :size="18" aria-hidden="true" />
-          Reagendar (+1 día)
         </button>
       </div>
       <p v-if="message" class="message">{{ message }}</p>
@@ -129,12 +180,16 @@ import {
   CalendarClock,
   CalendarDays,
   CalendarX2,
+  Check,
+  CheckSquare,
   Clock,
   FileText,
   ListFilter,
   MapPin,
+  MessageCircle,
   Stethoscope,
   Timer,
+  X,
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -182,6 +237,53 @@ const onReschedule = async () => {
     message.value = 'Cita reagendada para el día siguiente.'
   } catch (e) {
     message.value = e instanceof Error ? e.message : 'Error al reagendar.'
+  }
+}
+
+const sendWhatsAppMessage = (appVal: AppointmentView) => {
+  const patient = store.patients.find((p) => p.id === appVal.pacienteId)
+  const phone = patient ? patient.telefono : ''
+  const cleanPhone = phone.replace(/\D/g, '')
+  const messageText = `Hola ${appVal.pacienteNombre}, te confirmamos tu cita en Médic Clinic para el día ${formatDateOnly(appVal.fechaISO)} a las ${formatTime(appVal.fechaISO)} con el médico ${appVal.medicoAsignado}. Motivo: ${motivoLabel(appVal.motivo)}. ¡Te esperamos!`
+  const encodedText = encodeURIComponent(messageText)
+  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedText}`
+  window.open(whatsappUrl, '_blank')
+}
+
+const onSendWhatsApp = () => {
+  if (!appointment.value) return
+  sendWhatsAppMessage(appointment.value)
+}
+
+const onConfirm = async () => {
+  if (!appointment.value) return
+  try {
+    const appVal = appointment.value
+    await store.confirmAppointment(appVal.id)
+    message.value = 'Cita confirmada y aceptada.'
+    sendWhatsAppMessage(appVal)
+  } catch (e) {
+    message.value = e instanceof Error ? e.message : 'Error al confirmar.'
+  }
+}
+
+const onReject = async () => {
+  if (!appointment.value) return
+  try {
+    await store.rejectAppointment(appointment.value.id)
+    message.value = 'Cita rechazada (no aceptada).'
+  } catch (e) {
+    message.value = e instanceof Error ? e.message : 'Error al rechazar.'
+  }
+}
+
+const onComplete = async () => {
+  if (!appointment.value) return
+  try {
+    await store.completeAppointment(appointment.value.id)
+    message.value = 'Consulta completada y finalizada.'
+  } catch (e) {
+    message.value = e instanceof Error ? e.message : 'Error al completar.'
   }
 }
 </script>
@@ -450,6 +552,24 @@ const onReschedule = async () => {
 }
 .btn-danger:hover:not(:disabled) {
   box-shadow: 0 6px 18px rgba(197, 92, 106, 0.35);
+}
+
+.btn-success {
+  color: #fff;
+  background: linear-gradient(135deg, #4fa385, #2f8a69);
+  box-shadow: 0 4px 14px rgba(47, 138, 105, 0.3);
+}
+.btn-success:hover:not(:disabled) {
+  box-shadow: 0 6px 18px rgba(47, 138, 105, 0.35);
+}
+
+.btn-whatsapp {
+  color: #fff;
+  background: linear-gradient(135deg, #25d366, #128c7e);
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.3);
+}
+.btn-whatsapp:hover:not(:disabled) {
+  box-shadow: 0 6px 18px rgba(37, 211, 102, 0.35);
 }
 
 .btn-secondary {

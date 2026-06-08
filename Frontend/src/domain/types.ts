@@ -1,6 +1,6 @@
 export type UserRole = 'admin' | 'medico' | 'paciente'
 
-export type AppointmentStatus = 'pendiente' | 'confirmada' | 'cancelada'
+export type AppointmentStatus = 'pendiente' | 'confirmada' | 'cancelada' | 'no_aceptada' | 'completada'
 
 /** Ficha clinica: identidad (nombre/correo) solo en users via userId (3FN) */
 export interface Patient {

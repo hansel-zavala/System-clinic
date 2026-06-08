@@ -186,6 +186,60 @@ export function createAppointmentSlice(deps: {
     }
   }
 
+  const confirmAppointment = async (appointmentId: string) => {
+    const appointment = appointments.value.find((item) => item.id === appointmentId)
+    if (!appointment) return
+    appointment.estado = 'confirmada'
+    await persistClinicTables({ appointments: appointments.value })
+    const patientUid = patients.value.find((item) => item.id === appointment.pacienteId)?.userId
+    if (patientUid) {
+      await pushNotification({
+        id: newNumericId(),
+        userId: patientUid,
+        appointmentId,
+        mensaje: `Tu cita ha sido aceptada y confirmada para el ${formatDateTimeShort(appointment.fechaISO)}.`,
+        fechaISO: new Date().toISOString(),
+        leida: false,
+      })
+    }
+  }
+
+  const rejectAppointment = async (appointmentId: string) => {
+    const appointment = appointments.value.find((item) => item.id === appointmentId)
+    if (!appointment) return
+    appointment.estado = 'no_aceptada'
+    await persistClinicTables({ appointments: appointments.value })
+    const patientUid = patients.value.find((item) => item.id === appointment.pacienteId)?.userId
+    if (patientUid) {
+      await pushNotification({
+        id: newNumericId(),
+        userId: patientUid,
+        appointmentId,
+        mensaje: `Tu cita del ${formatDateTimeShort(appointment.fechaISO)} no fue aceptada.`,
+        fechaISO: new Date().toISOString(),
+        leida: false,
+      })
+    }
+  }
+
+  const completeAppointment = async (appointmentId: string) => {
+    const appointment = appointments.value.find((item) => item.id === appointmentId)
+    if (!appointment) return
+    appointment.estado = 'completada'
+    await persistClinicTables({ appointments: appointments.value })
+    const patientUid = patients.value.find((item) => item.id === appointment.pacienteId)?.userId
+    if (patientUid) {
+      await pushNotification({
+        id: newNumericId(),
+        userId: patientUid,
+        appointmentId,
+        mensaje: `Tu consulta médica del ${formatDateTimeShort(appointment.fechaISO)} ha finalizado. ¡Gracias por visitarnos!`,
+        fechaISO: new Date().toISOString(),
+        leida: false,
+      })
+    }
+  }
+
   const chartDataByMonth = computed(() =>
     countAppointmentsByMonth(roleScopedAppointments.value.map((a) => a.fechaISO)),
   )
@@ -202,6 +256,9 @@ export function createAppointmentSlice(deps: {
     createAppointment,
     cancelAppointment,
     rescheduleAppointment,
+    confirmAppointment,
+    rejectAppointment,
+    completeAppointment,
     chartDataByMonth,
     newPatientsByMonth,
   }

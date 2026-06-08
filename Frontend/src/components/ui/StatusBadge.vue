@@ -17,6 +17,8 @@ const variantClass = computed(() => {
     pendiente: 'warning',
     confirmada: 'success',
     cancelada: 'danger',
+    completada: 'primary',
+    no_aceptada: 'danger',
     admin: 'primary',
     medico: 'secondary',
     paciente: 'neutral',
