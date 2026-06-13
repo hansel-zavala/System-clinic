@@ -1,0 +1,27 @@
+# Gradle files
+.gradle/
+build/
+/*/build/
+
+# Kotlin compiler caches
+.kotlin/
+
+# Local configuration (SDK path, etc.)
+local.properties
+
+# Android Studio / IntelliJ IDEA files
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Keystores (highly recommended to ignore for security)
+*.jks
+*.keystore
+
+# Device/Emulator/OS specific files
+/captures/
+.DS_Store
+Thumbs.db
+.agent
+input_images

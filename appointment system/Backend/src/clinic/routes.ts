@@ -330,6 +330,94 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
     }
   })
 
+  // Nueva ruta para el App de Escaneo QR (Android)
+  app.post('/api/clinic/check-in', async (req, res) => {
+    if (!supabase) {
+      return res.status(503).json({ success: false, message: 'Supabase no configurado.' })
+    }
+
+    const { qrData } = req.body as { qrData: string }
+    if (!qrData) {
+      return res.status(400).json({ success: false, message: 'Faltan datos del QR.' })
+    }
+
+    let appointmentId = qrData
+    // Si los datos del QR vienen con el prefijo propietario
+    if (qrData.startsWith('CLINICA_AURA|')) {
+      appointmentId = qrData.split('|')[1]
+    }
+    // Si los datos del QR vienen como URL completa, extraemos el ID
+    else if (qrData.includes('?id=')) {
+      try {
+        const url = new URL(qrData)
+        appointmentId = url.searchParams.get('id') || qrData
+      } catch (e) {
+        // No es una URL válida, asumimos que qrData es el ID
+      }
+    }
+
+    try {
+      // 1. Buscar la cita
+      const { data: appData, error: appErr } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('id', appointmentId)
+        .single()
+
+      if (appErr || !appData) {
+        return res.status(404).json({ success: false, message: 'Cita no encontrada.' })
+      }
+
+      // 2. Obtener datos del paciente para la respuesta
+      const { data: patientData, error: patErr } = await supabase
+        .from('patients')
+        .select('user_id')
+        .eq('id', appData.paciente_id)
+        .single()
+
+      let patientName = 'Paciente'
+      if (patientData && !patErr) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('nombre')
+          .eq('id', patientData.user_id)
+          .single()
+        if (userData) {
+          patientName = userData.nombre
+        }
+      }
+
+      // 3. Validar asistencia (actualizar estado a 'confirmada' si estaba 'pendiente')
+      if (appData.estado === 'pendiente') {
+        await supabase
+          .from('appointments')
+          .update({ estado: 'confirmada' })
+          .eq('id', appointmentId)
+      }
+
+      // 4. Notificar al Frontend (Panel Administrativo) via SSE
+      sseClients.forEach((client) => {
+        client.write(`data: ${JSON.stringify({ appointmentId, action: 'check-in', patientName })}\n\n`)
+      })
+
+      // 5. Responder a la App
+      const fecha = new Date(appData.fecha_iso)
+      const hora = fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+
+      return res.json({
+        success: true,
+        message: 'Check-in realizado con éxito.',
+        patientName: patientName,
+        time: hora
+      })
+
+    } catch (e) {
+      console.error('[check-in API] Error:', e)
+      return res.status(500).json({ success: false, message: 'Error interno en el servidor.' })
+    }
+  })
+
+
   app.get('/api/clinic/tables', async (_req, res) => {
     if (!supabase) {
       return res.status(503).json({ error: 'Supabase no configurado.' })
@@ -570,6 +658,11 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
     }
 
     try {
+      const targetDate = new Date(fechaISO)
+      if (isNaN(targetDate.getTime())) {
+        return res.status(400).json({ ok: false, error: 'Formato de fecha inválido.' })
+      }
+
       // 1. Consultorios activos
       const { data: consultorios, error: cErr } = await supabase
         .from('consultorios')
@@ -577,25 +670,47 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
         .eq('activo', true)
       if (cErr) throw cErr
 
-      // 2. Médicos (usuarios con rol = 'medico')
-      const { data: medicos, error: mErr } = await supabase
+      // 2. Médicos (usuarios con rol = 'medico') y sus horarios
+      const { data: allMedicos, error: mErr } = await supabase
         .from('users')
-        .select('id')
+        .select('id, nombre, horario_disponible')
         .eq('rol', 'medico')
       if (mErr) throw mErr
 
       if (!consultorios || consultorios.length === 0) {
-        return res.json({ ok: true, libre: false, message: 'No hay consultorios activos disponibles.' })
+        return res.json({ ok: true, libre: false, message: 'No hay consultorios activos disponibles en la clínica.' })
       }
-      if (!medicos || medicos.length === 0) {
-        return res.json({ ok: true, libre: false, message: 'No hay médicos registrados.' })
+      if (!allMedicos || allMedicos.length === 0) {
+        return res.json({ ok: true, libre: false, message: 'No hay médicos registrados en el sistema.' })
       }
 
-      // 3. Citas programadas en esta fecha (excluyendo canceladas)
+      // 3. Filtrar médicos por horario disponible (ajustado a la zona horaria de Costa Rica UTC-6)
+      const weekdays = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado']
+      const localDate = new Date(targetDate.getTime() - 6 * 60 * 60 * 1000)
+      const targetDayName = weekdays[localDate.getUTCDay()]
+      const targetTimeStr = localDate.getUTCHours().toString().padStart(2, '0') + ':' + localDate.getUTCMinutes().toString().padStart(2, '0')
+
+      const medicosConHorario = allMedicos.filter(m => {
+        if (!m.horario_disponible) return true // Si no tiene horario, asumimos siempre disponible (opcional)
+        
+        const scheduleParts = m.horario_disponible.split(',').map(s => s.trim())
+        return scheduleParts.some(part => {
+          if (!part.startsWith(targetDayName)) return false
+          const timeRange = part.replace(targetDayName, '').trim() // "08:00-12:00"
+          const [start, end] = timeRange.split('-')
+          return targetTimeStr >= start && targetTimeStr < end
+        })
+      })
+
+      if (medicosConHorario.length === 0) {
+        return res.json({ ok: true, libre: false, message: `No hay médicos que atiendan los ${targetDayName} a las ${targetTimeStr}.` })
+      }
+
+      // 4. Citas programadas en esta fecha (excluyendo canceladas)
       const { data: appointments, error: aErr } = await supabase
         .from('appointments')
         .select('medico_user_id, consultorio_id')
-        .eq('fecha_iso', fechaISO)
+        .or(`fecha_iso.eq.${fechaISO},fecha_iso.eq.${fechaISO.replace('.000Z', 'Z')},fecha_iso.eq.${fechaISO.replace('Z', '.000Z')}`)
         .neq('estado', 'cancelada')
       if (aErr) throw aErr
 
@@ -603,7 +718,7 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
       const occupiedMedicos = new Set((appointments ?? []).map((a) => a.medico_user_id))
 
       const freeConsultorio = consultorios.find((c) => !occupiedConsultorios.has(c.id))
-      const freeMedico = medicos.find((m) => !occupiedMedicos.has(m.id))
+      const freeMedico = medicosConHorario.find((m) => !occupiedMedicos.has(m.id))
 
       if (freeConsultorio && freeMedico) {
         return res.json({
@@ -613,7 +728,15 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
           consultorioId: freeConsultorio.id,
         })
       } else {
-        return res.json({ ok: true, libre: false })
+        let reason = 'El horario seleccionado ya está ocupado.'
+        if (medicosConHorario.length > 0 && !freeMedico) {
+          reason = 'Todos los médicos disponibles para este horario ya tienen una cita programada.'
+        }
+        if (!freeConsultorio) {
+          reason = 'Todos los consultorios están ocupados para este horario.'
+        }
+        
+        return res.json({ ok: true, libre: false, message: reason })
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
@@ -676,7 +799,7 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
       const { data: appointments, error: aErr } = await supabase
         .from('appointments')
         .select('medico_user_id, consultorio_id')
-        .eq('fecha_iso', fechaISO)
+        .or(`fecha_iso.eq.${fechaISO},fecha_iso.eq.${fechaISO.replace('.000Z', 'Z')},fecha_iso.eq.${fechaISO.replace('Z', '.000Z')}`)
         .neq('estado', 'cancelada')
       if (aErr) throw aErr
 

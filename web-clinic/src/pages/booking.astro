@@ -98,6 +98,8 @@ import '../styles/global.css';
 
   <script>
     const API_URL = 'http://localhost:4000';
+    // MODO DESARROLLO: Cambiar a false para activar la restricción de una cita por día en producción
+    const DISABLE_BOOKING_RESTRICTION = true; 
 
     interface BookingData {
       name?: string;
@@ -412,69 +414,91 @@ import '../styles/global.css';
       return dates;
     }
 
-    function askTime() {
+    async function askTime() {
       appendBotMessage(`
         <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
-          Comprendo. Vamos a verificar qué horarios tenemos libres en el sistema. ¿Cuál de estos horarios sugeridos para los próximos días laborables te queda mejor?
+          Comprendo. Vamos a verificar qué horarios tenemos libres en el sistema. Estamos buscando slots disponibles según los horarios de nuestros médicos...
+        </div>
+      `);
+
+      const indicator = showTypingIndicator();
+      const nextDays = getNextWorkingDays();
+      const validSlots = [];
+      
+      // Intentar encontrar 3 slots libres reales
+      for (const day of nextDays) {
+        if (validSlots.length >= 3) break;
+        
+        // Horarios estándar de la clínica: 9am, 10am, 11am, 2pm, 3pm, 4pm
+        const hoursToTry = [9, 10, 11, 14, 15, 16];
+        for (const h of hoursToTry) {
+          if (validSlots.length >= 3) break;
+          
+          const d = new Date(day);
+          d.setHours(h, 0, 0, 0);
+          const iso = d.toISOString();
+          
+          try {
+            const res = await fetch(`${API_URL}/api/clinic/availability?fechaISO=${encodeURIComponent(iso)}`);
+            const data = await res.json();
+            if (data.ok && data.libre) {
+              validSlots.push({
+                iso,
+                dateLabel: d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }),
+                timeLabel: d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true })
+              });
+            }
+          } catch (e) { console.error(e); }
+        }
+      }
+
+      removeTypingIndicator();
+
+      if (validSlots.length === 0) {
+        appendBotMessage(`
+          <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+            Lo sentimos, no hemos encontrado horarios disponibles automáticamente en los próximos días. Por favor, selecciona un horario manualmente:
+          </div>
+        `);
+        showCustomDateTimePicker();
+        return;
+      }
+
+      appendBotMessage(`
+        <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+          Aquí tienes algunas opciones disponibles según tu búsqueda:
         </div>
       `);
 
       const timesGrid = document.createElement('div');
       timesGrid.className = 'grid grid-cols-2 gap-sm mt-xs w-full max-w-sm pl-10 animate-fade-in';
       
-      const nextDays = getNextWorkingDays();
-      const hours = [
-        { time: '09:00 AM', h: 9 },
-        { time: '11:00 AM', h: 11 },
-        { time: '03:00 PM', h: 15 }
-      ];
-
-      const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-      const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-
-      // Generar 3 combinaciones de fechas y horas
-      const slots = [
-        { dateObj: nextDays[0], hour: hours[0] }, // Día 1 - 9am
-        { dateObj: nextDays[1], hour: hours[1] }, // Día 2 - 11am
-        { dateObj: nextDays[2], hour: hours[2] }  // Día 3 - 3pm
-      ];
-
-      slots.forEach(slot => {
-        const d = new Date(slot.dateObj);
-        d.setHours(slot.hour.h, 0, 0, 0);
-        
-        // Ajustamos la fecha a un string ISO
-        const isoString = d.toISOString();
-        const dateLabel = `${daysOfWeek[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
-        const timeLabel = slot.hour.time;
-
+      validSlots.forEach(slot => {
         const btn = document.createElement('button');
         btn.className = 'bg-surface border border-outline hover:border-primary hover:shadow-sm p-sm rounded-sm flex flex-col items-center justify-center transition-all group cursor-pointer active:scale-95';
         btn.innerHTML = `
-          <span class="font-label-md text-label-md text-on-surface group-hover:text-primary">${dateLabel}</span>
-          <span class="font-caption text-caption text-on-surface-variant">${timeLabel}</span>
+          <span class="font-label-md text-label-md text-on-surface group-hover:text-primary capitalize">${slot.dateLabel}</span>
+          <span class="font-caption text-caption text-on-surface-variant">${slot.timeLabel}</span>
         `;
         btn.addEventListener('click', async () => {
           timesGrid.remove();
-          appendUserMessage(`${dateLabel} (${timeLabel})`);
+          appendUserMessage(`${slot.dateLabel} (${slot.timeLabel})`);
           
-          const indicator = showTypingIndicator();
+          const checkIndicator = showTypingIndicator();
           try {
-            // Consultar disponibilidad al backend
-            const res = await fetch(`${API_URL}/api/clinic/availability?fechaISO=${encodeURIComponent(isoString)}`);
+            // Verificación de último segundo antes de proceder (concurrencia)
+            const res = await fetch(`${API_URL}/api/clinic/availability?fechaISO=${encodeURIComponent(slot.iso)}`);
             const data = await res.json();
             removeTypingIndicator();
 
             if (data.ok && data.libre) {
-              booking.isoTime = isoString;
-              booking.time = `${dateLabel} a las ${timeLabel}`;
-              
-              // Intentar registrar la cita
+              booking.isoTime = slot.iso;
+              booking.time = `${slot.dateLabel} a las ${slot.timeLabel}`;
               submitBooking();
             } else {
               appendBotMessage(`
                 <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
-                  Lo sentimos, ese espacio de tiempo ya no está libre. Por favor, selecciona otra opción o pulsa "Ver más horarios".
+                  ${data.message || 'Lo sentimos, este horario acaba de ser reservado por otro usuario.'} Por favor, intenta con otra opción.
                 </div>
               `);
               askTime();
@@ -483,7 +507,7 @@ import '../styles/global.css';
             removeTypingIndicator();
             appendBotMessage(`
               <div class="bg-surface border border-outline text-[#C62828] p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
-                Error de comunicación con la clínica al verificar disponibilidad. Volvamos a intentarlo.
+                Error al verificar el horario. Inténtalo de nuevo.
               </div>
             `);
             askTime();
@@ -497,7 +521,7 @@ import '../styles/global.css';
       moreBtn.className = 'bg-surface border border-dashed border-outline hover:border-primary hover:bg-primary/5 p-sm rounded-sm flex flex-col items-center justify-center transition-all text-primary cursor-pointer active:scale-95';
       moreBtn.innerHTML = `
         <span class="material-symbols-outlined mb-1">calendar_month</span>
-        <span class="font-caption text-caption">Ver más horarios</span>
+        <span class="font-caption text-caption">Otro Horario</span>
       `;
       moreBtn.addEventListener('click', () => {
         timesGrid.remove();
@@ -582,7 +606,7 @@ import '../styles/global.css';
             input.disabled = true;
           } else {
             statusMsg.className = 'text-caption font-caption text-[#C62828]';
-            statusMsg.innerText = 'Este horario no está disponible (médico u oficina ocupados). Elige otro.';
+            statusMsg.innerText = data.message || 'Este horario no está disponible (médico u oficina ocupados). Elige otro.';
             statusMsg.classList.remove('hidden');
             btnCheck.disabled = false;
             btnCheck.innerText = 'Verificar Disponibilidad';
@@ -712,7 +736,7 @@ import '../styles/global.css';
       canvas?.appendChild(summaryCard);
 
       // QR Code check-in pass card
-      const scanUrl = `${API_URL}/api/clinic/scan-qr?id=${appointment.id}`;
+      const scanUrl = `CLINICA_AURA|${appointment.id}`;
       const qrCard = document.createElement('div');
       qrCard.className = 'border border-outline bg-surface rounded-lg p-md shadow-[0_4px_12px_-4px_rgba(20,61,38,0.04)] text-center max-w-sm mt-xs ml-10 animate-fade-in flex flex-col items-center gap-sm';
       qrCard.innerHTML = `
@@ -798,7 +822,7 @@ import '../styles/global.css';
       canvas?.appendChild(summaryCard);
 
       if (appt.id) {
-        const scanUrl = `${API_URL}/api/clinic/scan-qr?id=${appt.id}`;
+        const scanUrl = `CLINICA_AURA|${appt.id}`;
         const qrCard = document.createElement('div');
         qrCard.className = 'border border-outline bg-surface rounded-lg p-md shadow-[0_4px_12px_-4px_rgba(20,61,38,0.04)] text-center max-w-sm mt-xs ml-10 animate-fade-in flex flex-col items-center gap-sm';
         qrCard.innerHTML = `
@@ -837,7 +861,7 @@ import '../styles/global.css';
 
     function restartChat() {
       const activeBooking = localStorage.getItem('medclinic_active_booking');
-      if (activeBooking) {
+      if (activeBooking && !DISABLE_BOOKING_RESTRICTION) {
         appendBotMessage(`
           <div class="bg-surface border border-outline text-[#C62828] p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
             No es posible reiniciar la conversación ya que cuentas con una cita registrada activa en este navegador. Si necesitas ayuda adicional, por favor llama al (555) 019-2834.
@@ -875,7 +899,7 @@ import '../styles/global.css';
       }
       
       const activeBooking = localStorage.getItem('medclinic_active_booking');
-      if (activeBooking) {
+      if (activeBooking && !DISABLE_BOOKING_RESTRICTION) {
         try {
           const appt = JSON.parse(activeBooking);
           showExistingBooking(appt);

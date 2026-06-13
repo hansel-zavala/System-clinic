@@ -11,9 +11,6 @@
     "test:watch": "vitest",
     "check": "pnpm test && pnpm build"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": ["core-js", "vue-demi"]
-  },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.5",
     "@vue/test-utils": "^2.4.6",

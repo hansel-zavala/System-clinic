@@ -28,10 +28,12 @@ Sistema completo de gestión para clínicas médicas que incluye un **panel admi
 
 ```
 Clinica/
-├── Backend/          # API REST (Express + TypeScript)
-├── Frontend/         # Panel administrativo (Vue 3 + Vite)
-├── web-clinic/       # Sitio público (Astro + Tailwind)
-└── database/         # Migraciones SQL (full_migration.sql)
+├── appointment system/ # Sistema de citas (Backend, Frontend y Base de datos)
+│   ├── Backend/        # API REST (Express + TypeScript)
+│   ├── Frontend/       # Panel administrativo (Vue 3 + Vite)
+│   └── database/       # Migraciones SQL (full_migration.sql)
+├── qr/                 # Aplicación móvil Android para escaneo de códigos QR
+└── web-clinic/         # Sitio público (Astro + Tailwind)
 ```
 
 ---
@@ -42,14 +44,14 @@ Clinica/
 
 ```bash
 # Instalar dependencias de todos los subproyectos
-cd Backend && pnpm install
+cd "appointment system/Backend" && pnpm install
 cd ../Frontend && pnpm install
-cd ../web-clinic && pnpm install
+cd ../../web-clinic && pnpm install
 ```
 
 ### 2. Configurar variables de entorno
 
-**Backend** — `Backend/.env`:
+**Backend** — `appointment system/Backend/.env`:
 
 ```env
 SUPABASE_URL=https://cambiar-supabase-url.supabase.co
@@ -59,7 +61,7 @@ RESET_SECRET=tu_secreto_aqui
 PORT=4000
 ```
 
-**Frontend** — `Frontend/.env`:
+**Frontend** — `appointment system/Frontend/.env`:
 
 ```env
 VITE_API_URL=http://localhost:4000
@@ -70,11 +72,11 @@ VITE_API_URL=http://localhost:4000
 Ejecutar el script de migración contra tu proyecto de Supabase:
 
 ```bash
-cd Backend
+cd "appointment system/Backend"
 pnpm migrate
 ```
 
-Esto crea todas las tablas e inserta los datos iniciales. Alternativamente, puedes copiar el contenido de `database/full_migration.sql` y ejecutarlo directamente en el SQL Editor de Supabase.
+Esto crea todas las tablas e inserta los datos iniciales. Alternativamente, puedes copiar el contenido de `appointment system/database/full_migration.sql` y ejecutarlo directamente en el SQL Editor de Supabase.
 
 ---
 
@@ -83,7 +85,7 @@ Esto crea todas las tablas e inserta los datos iniciales. Alternativamente, pued
 ### Backend (API)
 
 ```bash
-cd Backend
+cd "appointment system/Backend"
 pnpm dev
 ```
 
@@ -92,7 +94,7 @@ El servidor se inicia en `http://localhost:4000`.
 ### Frontend (Panel Administrativo)
 
 ```bash
-cd Frontend
+cd "appointment system/Frontend"
 pnpm dev
 ```
 
@@ -106,6 +108,14 @@ pnpm dev
 ```
 
 El sitio se abre en `http://localhost:4321`.
+
+### App Móvil (Escáner QR)
+
+La carpeta `qr` contiene una aplicación móvil Android desarrollada en Kotlin que permite escanear códigos QR.
+Para compilar y ejecutar:
+1. Abre la carpeta `qr` en **Android Studio**.
+2. Sincroniza Gradle.
+3. Ejecuta en un dispositivo o emulador.
 
 ---
 
