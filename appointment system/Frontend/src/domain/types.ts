@@ -169,3 +169,13 @@ export interface PatientMedication {
   notas: string | null
   registradoEn: string
 }
+
+export interface ChatbotSettings {
+  id: string
+  welcomeMessage: string
+  askName: string
+  askPhone: string
+  askReason: string
+  askSymptoms: string
+  updatedAt: string
+}

@@ -44,6 +44,12 @@ const router = createRouter({
           component: () => import('../views/SystemSettingsView.vue'),
         },
         {
+          path: 'chatbot-config',
+          name: 'chatbot-config',
+          meta: { roles: ['admin'] satisfies UserRole[] },
+          component: () => import('../views/ChatbotSettingsView.vue'),
+        },
+        {
           path: 'acceso-no-autorizado',
           name: 'acceso-no-autorizado',
           component: () => import('../views/AccessDeniedView.vue'),

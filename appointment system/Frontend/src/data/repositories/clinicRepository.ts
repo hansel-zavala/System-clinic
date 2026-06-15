@@ -1,6 +1,7 @@
 import type {
   AllergenCatalog,
   Appointment,
+  ChatbotSettings,
   ClinicalEncounter,
   ClinicalNote,
   Consultorio,
@@ -109,4 +110,28 @@ export async function persistClinicTables(payload: Partial<ClinicTables>): Promi
       }
     }, 90)
   })
+}
+
+export async function fetchChatbotSettings(): Promise<{
+  settings: ChatbotSettings | null
+  motivos: MotivoConsultaItem[]
+}> {
+  const res = await fetch(`${apiBase()}/api/clinic/settings/chatbot`)
+  if (!res.ok) {
+    const t = await res.text()
+    throw new Error(t || `HTTP ${res.status}`)
+  }
+  return (await res.json()) as { settings: ChatbotSettings | null; motivos: MotivoConsultaItem[] }
+}
+
+export async function updateChatbotSettings(settings: Partial<ChatbotSettings>): Promise<void> {
+  const res = await fetch(`${apiBase()}/api/clinic/settings/chatbot`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  })
+  if (!res.ok) {
+    const t = await res.text()
+    throw new Error(t || `HTTP ${res.status}`)
+  }
 }

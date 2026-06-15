@@ -6,9 +6,13 @@ import android.util.Log
 import android.view.ViewGroup
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
+import androidx.compose.ui.tooling.preview.Preview as ComposePreview
+import com.example.qr.ui.theme.QrTheme
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.LinearEasing
@@ -55,6 +59,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -93,6 +98,19 @@ fun ScannerScreen(
         }
     }
 
+    ScannerScreenContent(
+        hasCameraPermission = hasCameraPermission,
+        onQrDetected = onQrDetected,
+        onBack = onBack
+    )
+}
+
+@Composable
+fun ScannerScreenContent(
+    hasCameraPermission: Boolean,
+    onQrDetected: (String) -> Unit,
+    onBack: () -> Unit
+) {
     Scaffold(
         topBar = {
             ScannerTopBar(onBack = onBack)
@@ -280,11 +298,25 @@ fun ScannerOverlay() {
     }
 }
 
+@OptIn(ExperimentalGetImage::class)
 @Composable
 fun CameraPreview(
     modifier: Modifier = Modifier,
     onQrDetected: (String) -> Unit
 ) {
+    if (LocalInspectionMode.current) {
+        Box(
+            modifier = modifier.background(Color.DarkGray),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Cámara (Vista previa)",
+                color = Color.White,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+        return
+    }
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
@@ -356,4 +388,28 @@ fun CameraPreview(
             }, ContextCompat.getMainExecutor(context))
         }
     )
+}
+
+@ComposePreview(showBackground = true, name = "Permission Granted")
+@Composable
+fun ScannerScreenContentPermissionGrantedPreview() {
+    QrTheme {
+        ScannerScreenContent(
+            hasCameraPermission = true,
+            onQrDetected = {},
+            onBack = {}
+        )
+    }
+}
+
+@ComposePreview(showBackground = true, name = "Permission Denied")
+@Composable
+fun ScannerScreenContentPermissionDeniedPreview() {
+    QrTheme {
+        ScannerScreenContent(
+            hasCameraPermission = false,
+            onQrDetected = {},
+            onBack = {}
+        )
+    }
 }

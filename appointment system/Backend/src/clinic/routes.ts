@@ -1,5 +1,6 @@
 import type { Express } from 'express'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import {
   allergenRowToClient,
   appointmentRowToClient,
@@ -29,6 +30,8 @@ import {
   doctorSlotClientToRow,
   encounterClientToRow,
   clinicalNoteClientToRow,
+  chatbotSettingsRowToClient,
+  chatbotSettingsClientToRow,
 } from './mappers.js'
 import { resetDatabaseToAdminOnly } from './resetToAdminOnly.js'
 import { buildUserRowsForUpsert } from './usersPersist.js'
@@ -955,6 +958,124 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
         },
       })
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      res.status(500).json({ ok: false, error: msg })
+    }
+  })
+
+  /** Obtener configuración del chatbot y motivos activos */
+  app.get('/api/clinic/settings/chatbot', async (req, res) => {
+    if (!supabase) {
+      return res.status(503).json({ ok: false, error: 'Supabase no configurado.' })
+    }
+    try {
+      const { data: settings, error: setErr } = await supabase
+        .from('chatbot_settings')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (setErr) throw setErr
+
+      const { data: motivos, error: motErr } = await supabase
+        .from('motivos_consulta')
+        .select('*')
+        .eq('activo', true)
+
+      if (motErr) throw motErr
+
+      res.json({
+        ok: true,
+        settings: settings ? chatbotSettingsRowToClient(settings) : null,
+        motivos: (motivos ?? []).map(motivoConsultaRowToClient),
+      })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      res.status(500).json({ ok: false, error: msg })
+    }
+  })
+
+  /** Actualizar configuración del chatbot */
+  app.put('/api/clinic/settings/chatbot', async (req, res) => {
+    if (!supabase) {
+      return res.status(503).json({ ok: false, error: 'Supabase no configurado.' })
+    }
+    try {
+      const body = req.body as any
+      const row = chatbotSettingsClientToRow(body)
+
+      const { data, error } = await supabase
+        .from('chatbot_settings')
+        .upsert({
+          id: '00000000-0000-0000-0000-000000000001',
+          ...row,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      res.json({ ok: true, settings: chatbotSettingsRowToClient(data) })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      res.status(500).json({ ok: false, error: msg })
+    }
+  })
+
+  /** AI Chat: Procesa mensajes con Gemini */
+  app.post('/api/clinic/chat-ai', async (req, res) => {
+    if (!supabase) {
+      return res.status(503).json({ ok: false, error: 'Supabase no configurado.' })
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY
+    if (!apiKey) {
+      return res.status(503).json({ ok: false, error: 'GEMINI_API_KEY no configurada en el servidor.' })
+    }
+
+    try {
+      const { message, history } = req.body as { message: string; history: any[] }
+      console.log('[AI Chat] Request:', { message, historyCount: history?.length })
+      
+      // 1. Obtener contexto dinámico de la clínica (Motivos de Consulta)
+      const { data: motivos } = await supabase.from('motivos_consulta').select('nombre_largo').eq('activo', true)
+      const motivosStr = (motivos ?? []).map(m => m.nombre_largo).join(', ')
+
+      const genAI = new GoogleGenerativeAI(apiKey)
+      const model = genAI.getGenerativeModel({ 
+        model: 'gemini-2.5-flash',
+        systemInstruction: `Eres el Asistente Inteligente de Clínica Aura. Tu objetivo es ayudar a los pacientes de forma amable y profesional.
+
+REGLAS CRÍTICAS DE COMPORTAMIENTO:
+1. SOLO puedes hablar de temas relacionados con la clínica, medicina básica preventiva y gestión de citas.
+2. Si el usuario te pregunta por política, deportes, entretenimiento, otros negocios o cualquier tema ajeno, responde educadamente: "Lo siento, como asistente de Clínica Aura, solo puedo asistirle con temas relacionados a nuestros servicios médicos y citas". No te salgas de este papel bajo ninguna circunstancia.
+3. Tu misión principal es recolectar: NOMBRE COMPLETO, TELÉFONO (8 dígitos) y MOTIVO DE CONSULTA.
+4. Los motivos de consulta válidos en nuestra clínica son exclusivamente: ${motivosStr}. Si el usuario menciona otro, intenta guiarlo hacia uno de estos.
+5. NO inventes servicios que la clínica no tiene.
+
+FLUJO DE CITA:
+- Cuando detectes que el usuario ha proporcionado su NOMBRE, su TELÉFONO y un MOTIVO válido, confirma los datos con él.
+- Una vez confirmados, dile que procedes a mostrarle los horarios disponibles.
+- AL FINAL de tu respuesta, si ya tienes los 3 datos, añade SIEMPRE este JSON exacto en una nueva línea (no lo menciones verbalmente):
+{"intent": "CONFIRM_BOOKING", "data": {"name": "...", "phone": "...", "reason": "..."}}
+
+Recuerda: Sé empático pero mantén los límites de la empresa.`
+      })
+
+      const chat = model.startChat({
+        history: (history || []).map(h => ({
+          role: h.role === 'user' ? 'user' : 'model',
+          parts: [{ text: h.text }]
+        }))
+      })
+
+      const result = await chat.sendMessage(message)
+      const responseText = result.response.text()
+
+      res.json({ ok: true, text: responseText })
+    } catch (e) {
+      console.error('[AI Chat] Error:', e)
       const msg = e instanceof Error ? e.message : String(e)
       res.status(500).json({ ok: false, error: msg })
     }

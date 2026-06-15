@@ -34,10 +34,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.qr.api.AppointmentApi
 import com.example.qr.data.CheckInRequest
+import com.example.qr.ui.login.LoginScreen
+import com.example.qr.ui.theme.QrTheme
 
 sealed interface ConfirmationState {
     data object Loading : ConfirmationState
@@ -69,50 +72,59 @@ fun ConfirmationScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Since we are coming from ScannerScreen, we show the scanner background
-        // but the ConfirmationScreen itself will show the BottomSheet overlay.
-        
         ModalBottomSheet(
             onDismissRequest = onConfirm,
             sheetState = sheetState,
-            containerColor = Color(0xFF252329), // Dark background as per image
+            containerColor = Color(0xFF252329),
             dragHandle = null,
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
-            ) {
-                when (val currentState = state) {
-                    is ConfirmationState.Loading -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(300.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(color = Color(0xFFD0BCFF))
-                        }
-                    }
-                    is ConfirmationState.Success -> {
-                        SuccessContent(
-                            patientName = currentState.patientName,
-                            time = currentState.time,
-                            onConfirm = onConfirm
-                        )
-                    }
-                    is ConfirmationState.Error -> {
-                        ErrorContent(
-                            message = currentState.message,
-                            onConfirm = onConfirm
-                        )
-                    }
+            ConfirmationSheetContent(
+                state = state,
+                onConfirm = onConfirm
+            )
+        }
+    }
+}
+
+@Composable
+fun ConfirmationSheetContent(
+    state: ConfirmationState,
+    onConfirm: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp)
+    ) {
+        when (val currentState = state) {
+            is ConfirmationState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Color(0xFFD0BCFF))
                 }
+            }
+            is ConfirmationState.Success -> {
+                SuccessContent(
+                    patientName = currentState.patientName,
+                    time = currentState.time,
+                    onConfirm = onConfirm
+                )
+            }
+            is ConfirmationState.Error -> {
+                ErrorContent(
+                    message = currentState.message,
+                    onConfirm = onConfirm
+                )
             }
         }
     }
 }
+
 
 @Composable
 fun SuccessContent(
@@ -251,6 +263,34 @@ fun ErrorContent(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("REINTENTAR")
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ConfirmationScreenPreview() {
+    QrTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+        ) {
+            // We preview the content directly to avoid ModalBottomSheet's 
+            // internal render issues in Preview (IndexOutOfBoundsException)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .background(
+                        color = Color(0xFF252329),
+                        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+                    )
+            ) {
+                ConfirmationSheetContent(
+                    state = ConfirmationState.Success("Juan Pérez", "10:30 AM"),
+                    onConfirm = {}
+                )
+            }
         }
     }
 }

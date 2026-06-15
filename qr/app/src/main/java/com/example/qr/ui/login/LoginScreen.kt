@@ -89,7 +89,7 @@ fun LoginScreen(
                         Spacer(modifier = Modifier.height(32.dp))
 
                         Text(
-                            text = "QR Check-In",
+                            text = "QR AURA",
                             style = MaterialTheme.typography.displaySmall,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.primary

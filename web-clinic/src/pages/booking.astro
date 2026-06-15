@@ -101,6 +101,11 @@ import '../styles/global.css';
     // MODO DESARROLLO: Cambiar a false para activar la restricción de una cita por día en producción
     const DISABLE_BOOKING_RESTRICTION = true; 
 
+    interface ChatMessage {
+      role: 'user' | 'model';
+      text: string;
+    }
+
     interface BookingData {
       name?: string;
       phone?: string;
@@ -110,8 +115,14 @@ import '../styles/global.css';
       isoTime?: string;
     }
 
-    let step = 0; // 0: ask name, 1: ask phone, 2: ask reason, 2.5: ask symptoms, 3: ask time/date
+    let chatHistory: ChatMessage[] = [];
+    let isAILoading = false;
     let booking: BookingData = {};
+
+    let chatbotConfig = {
+      welcomeMessage: '¡Hola! Soy el Asistente Inteligente de Clínica Aura. Estoy aquí para ayudarte a programar tu visita de forma rápida y segura.',
+      askName: '¿En qué puedo ayudarte hoy?'
+    };
 
     const resetBtn = document.getElementById('chatbot-reset');
     const canvas = document.getElementById('chat-canvas');
@@ -133,16 +144,16 @@ import '../styles/global.css';
     });
 
     // Manejar envío del formulario
-    form?.addEventListener('submit', (e) => {
+    form?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const text = textarea?.value.trim();
-      if (!text || !textarea || !sendBtn) return;
+      if (!text || !textarea || !sendBtn || isAILoading) return;
 
       textarea.value = '';
       textarea.style.height = 'auto';
       sendBtn.disabled = true;
 
-      handleUserMessage(text);
+      await handleUserMessage(text);
     });
 
     textarea?.addEventListener('keydown', (e) => {
@@ -240,159 +251,86 @@ import '../styles/global.css';
       return nameParts.length >= 2 && nameParts[0].length >= 2 && nameParts[1].length >= 2;
     }
 
-    // Manejo de Estados de Conversación
-    function handleUserMessage(text: string) {
+    // Manejo de Estados de Conversación con IA
+    async function handleUserMessage(text: string) {
       appendUserMessage(text);
+      scrollToBottom();
 
-      if (step === 0) {
-        if (!isValidFullName(text)) {
-          const indicator = showTypingIndicator();
-          setTimeout(() => {
-            removeTypingIndicator();
-            appendBotMessage(`
-              <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
-                Por favor, introduce tu <b>nombre y apellido</b> (mínimo dos palabras de al menos 2 letras cada una) para poder registrar tu perfil (ej. Juan Pérez).
-              </div>
-            `);
-            if (textarea) {
-              textarea.placeholder = "Escribe tu nombre y apellido...";
+      isAILoading = true;
+      showTypingIndicator();
+
+      try {
+        const res = await fetch(`${API_URL}/api/clinic/chat-ai`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text, history: chatHistory })
+        });
+
+        const data = await res.json();
+        removeTypingIndicator();
+        isAILoading = false;
+
+        if (data.ok) {
+          let aiResponse = data.text;
+          
+          // Detectar intención de agendar (JSON al final)
+          const jsonMatch = aiResponse.match(/\{"intent":\s*"CONFIRM_BOOKING".*?\}/s);
+          const cleanText = jsonMatch ? aiResponse.replace(jsonMatch[0], '').trim() : aiResponse;
+
+          chatHistory.push({ role: 'user', text });
+          chatHistory.push({ role: 'model', text: cleanText });
+
+          appendBotMessage(`
+            <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+              ${cleanText.replace(/\n/g, '<br>')}
+            </div>
+          `);
+
+          if (jsonMatch) {
+            try {
+              const intentData = JSON.parse(jsonMatch[0]);
+              booking.name = intentData.data.name;
+              booking.phone = intentData.data.phone;
+              booking.reason = intentData.data.reason;
+              
+              setTimeout(askTime, 1000);
+            } catch (e) {
+              console.error('Error parsing AI intent:', e);
             }
-          }, 800);
-          return;
+          }
+        } else {
+          appendBotMessage(`
+            <div class="bg-surface border border-outline text-[#C62828] p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+              Lo siento, hubo un error al procesar tu mensaje. ¿Podrías intentar de nuevo?
+            </div>
+          `);
         }
-
-        booking.name = text.trim();
-        step = 1;
-        
-        const indicator = showTypingIndicator();
-        setTimeout(() => {
-          removeTypingIndicator();
-          askPhone();
-        }, 800);
-      } else if (step === 1) {
-        const cleanPhone = text.replace(/\D/g, '');
-        if (cleanPhone.length !== 8) {
-          const indicator = showTypingIndicator();
-          setTimeout(() => {
-            removeTypingIndicator();
-            appendBotMessage(`
-              <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
-                Por favor, ingresa un número de teléfono válido de <b>8 dígitos</b> (ej. 8888-8888).
-              </div>
-            `);
-            if (textarea) {
-              textarea.placeholder = "Escribe tu teléfono...";
-            }
-          }, 800);
-          return;
-        }
-
-        booking.phone = cleanPhone;
-        step = 2;
-        const indicator = showTypingIndicator();
-        setTimeout(() => {
-          removeTypingIndicator();
-          askReason();
-        }, 800);
-      } else if (step === 2.5) {
-        booking.notes = text.trim();
-        step = 3;
-
-        if (textarea) {
-          textarea.disabled = true;
-          textarea.placeholder = "Selecciona un horario abajo...";
-        }
-
-        const indicator = showTypingIndicator();
-        setTimeout(() => {
-          removeTypingIndicator();
-          askTime();
-        }, 800);
+      } catch (err) {
+        removeTypingIndicator();
+        isAILoading = false;
+        console.error('Chat error:', err);
+        appendBotMessage(`
+          <div class="bg-surface border border-outline text-[#C62828] p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
+            Error de conexión. Por favor verifica que el servidor esté activo.
+          </div>
+        `);
       }
+      
+      scrollToBottom();
     }
 
     function askName() {
       appendBotMessage(`
         <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
-          ¡Hola! Soy el Asistente de Reservas de MedClinic. Estoy aquí para ayudarte a programar tu visita de forma rápida y segura.
+          ¡Hola! Soy el Asistente Inteligente de Clínica Aura. Estoy aquí para ayudarte a programar tu visita de forma rápida y segura.
         </div>
         <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg font-body text-body-md shadow-sm mt-xs leading-relaxed">
-          Para comenzar, ¿podrías confirmar tu nombre y apellido completo?
+          ¿En qué puedo ayudarte hoy?
         </div>
       `);
       if (textarea) {
         textarea.disabled = false;
-        textarea.placeholder = "Escribe tu nombre y apellido...";
-      }
-    }
-
-    function askPhone() {
-      appendBotMessage(`
-        <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
-          Entendido, <b>${escapeHtml(booking.name || '')}</b>. ¿Cuál es tu número de teléfono de contacto?
-        </div>
-      `);
-      if (textarea) {
-        textarea.disabled = false;
-        textarea.placeholder = "Escribe tu teléfono (ej. 8888-8888)...";
-        textarea.focus();
-      }
-    }
-
-    function askReason() {
-      appendBotMessage(`
-        <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
-          Excelente. ¿Cuál es el motivo principal de tu visita hoy?
-        </div>
-      `);
-
-      if (textarea) {
-        textarea.disabled = true;
-        textarea.placeholder = "Selecciona un motivo arriba...";
-      }
-
-      const chipsDiv = document.createElement('div');
-      chipsDiv.className = 'flex flex-wrap gap-xs pl-10 mt-1 animate-fade-in';
-      
-      const options = [
-        { label: 'Chequeo General', icon: 'stethoscope' },
-        { label: 'Vacunación', icon: 'vaccines' },
-        { label: 'Renovación de Receta', icon: 'prescriptions' }
-      ];
-
-      options.forEach(opt => {
-        const btn = document.createElement('button');
-        btn.className = 'border border-outline bg-surface text-on-surface px-sm py-xs rounded-full hover:border-primary hover:text-primary hover:bg-primary/5 transition-all font-label-md text-label-md flex items-center gap-1 cursor-pointer active:scale-95 shadow-sm';
-        btn.innerHTML = `<span class="material-symbols-outlined text-[16px]">${opt.icon}</span> ${opt.label}`;
-        btn.addEventListener('click', () => {
-          chipsDiv.remove();
-          booking.reason = opt.label;
-          appendUserMessage(opt.label);
-          step = 2.5;
-          
-          showTypingIndicator();
-          setTimeout(() => {
-            removeTypingIndicator();
-            askSymptoms();
-          }, 800);
-        });
-        chipsDiv.appendChild(btn);
-      });
-
-      canvas?.appendChild(chipsDiv);
-      scrollToBottom();
-    }
-
-    function askSymptoms() {
-      appendBotMessage(`
-        <div class="bg-surface border border-outline text-on-surface p-sm rounded-lg rounded-tl-sm font-body text-body-md shadow-sm leading-relaxed">
-          Por favor, describe brevemente los síntomas, dolencias o el problema de consulta por el que deseas visitarnos:
-        </div>
-      `);
-      if (textarea) {
-        textarea.disabled = false;
-        textarea.placeholder = "Describe tus síntomas...";
-        textarea.focus();
+        textarea.placeholder = "Escribe tu consulta...";
       }
     }
 
@@ -871,17 +809,17 @@ import '../styles/global.css';
       }
 
       if (!canvas) return;
+      chatHistory = [];
       canvas.innerHTML = `
         <div class="flex justify-center my-xs">
           <span class="bg-surface-container-low text-on-surface-variant font-caption text-caption px-sm py-xs rounded-full">Conversación Reiniciada</span>
         </div>
       `;
-      step = 0;
       booking = {};
       if (textarea) {
         textarea.value = '';
         textarea.disabled = false;
-        textarea.placeholder = "Escribe tu nombre y apellido...";
+        textarea.placeholder = "Escribe tu consulta...";
         textarea.style.height = 'auto';
       }
       if (sendBtn) sendBtn.disabled = true;

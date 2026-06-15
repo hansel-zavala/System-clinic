@@ -76,6 +76,7 @@ import {
   ClipboardList,
   LayoutDashboard,
   LogOut,
+  MessageSquare,
   Settings,
   ShieldPlus,
   Stethoscope,
@@ -134,6 +135,7 @@ const links = computed(() => [
     ? [
         { to: '/app/registrar-medico', label: 'Medicos', icon: Stethoscope },
         { to: '/app/configuracion', label: 'Configuracion', icon: Settings },
+        { to: '/app/chatbot-config', label: 'Chatbot', icon: MessageSquare },
       ]
     : []),
 ])

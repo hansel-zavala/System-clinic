@@ -453,6 +453,16 @@ export type DbDuracionOpcion = {
   activo: boolean
 }
 
+export type DbChatbotSettings = {
+  id: string
+  welcome_message: string
+  ask_name: string
+  ask_phone: string
+  ask_reason: string
+  ask_symptoms: string
+  updated_at: string
+}
+
 export function motivoConsultaRowToClient(row: DbMotivoConsulta) {
   return {
     id: row.id,
@@ -486,5 +496,29 @@ export function duracionOpcionClientToRow(d: Record<string, unknown>): Record<st
     id: d.id,
     minutos: d.minutos,
     activo: d.activo ?? true,
+  }
+}
+
+export function chatbotSettingsRowToClient(row: DbChatbotSettings) {
+  return {
+    id: row.id,
+    welcomeMessage: row.welcome_message,
+    askName: row.ask_name,
+    askPhone: row.ask_phone,
+    askReason: row.ask_reason,
+    askSymptoms: row.ask_symptoms,
+    updatedAt: row.updated_at,
+  }
+}
+
+export function chatbotSettingsClientToRow(c: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: c.id,
+    welcome_message: c.welcomeMessage,
+    ask_name: c.askName,
+    ask_phone: c.askPhone,
+    ask_reason: c.askReason,
+    ask_symptoms: c.askSymptoms,
+    updated_at: new Date().toISOString(),
   }
 }

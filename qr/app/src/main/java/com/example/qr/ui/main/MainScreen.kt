@@ -29,7 +29,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.qr.ui.theme.QrTheme
 
 @Composable
 fun MainScreen(
@@ -84,14 +86,14 @@ fun InicioContent(onStartScan: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(32.dp))
         Text(
-            text = "Welcome to Check-In",
+            text = "Bienvenido al Check-In",
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.ExtraBold,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Scan QR codes to confirm attendance in seconds.",
+            text = "Escanee los códigos QR para confirmar su asistencia.",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -106,7 +108,7 @@ fun InicioContent(onStartScan: () -> Unit) {
         ) {
             Icon(Icons.Rounded.QrCodeScanner, contentDescription = null)
             Spacer(modifier = Modifier.size(12.dp))
-            Text("Open Scanner", style = MaterialTheme.typography.titleLarge)
+            Text("Abrir Scanner", style = MaterialTheme.typography.titleLarge)
         }
     }
 }
@@ -162,5 +164,37 @@ fun ConfiguracionContent() {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@Preview(showBackground = true, name = "Main Screen Preview")
+@Composable
+fun MainScreenPreview() {
+    QrTheme {
+        MainScreen(onStartScan = {})
+    }
+}
+
+@Preview(showBackground = true, name = "Inicio Content Preview")
+@Composable
+fun InicioContentPreview() {
+    QrTheme {
+        InicioContent(onStartScan = {})
+    }
+}
+
+@Preview(showBackground = true, name = "Historial Content Preview")
+@Composable
+fun HistorialContentPreview() {
+    QrTheme {
+        HistorialContent()
+    }
+}
+
+@Preview(showBackground = true, name = "Configuracion Content Preview")
+@Composable
+fun ConfiguracionContentPreview() {
+    QrTheme {
+        ConfiguracionContent()
     }
 }
