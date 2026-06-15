@@ -522,3 +522,32 @@ export function chatbotSettingsClientToRow(c: Record<string, unknown>): Record<s
     updated_at: new Date().toISOString(),
   }
 }
+
+export type DbHistory = {
+  id: string
+  user_id: string | null
+  scanned_data: string
+  created_at: string
+  clinic_id: string | null
+}
+
+export function historyRowToClient(row: DbHistory) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    scannedData: row.scanned_data,
+    createdAt: row.created_at,
+    clinicId: row.clinic_id,
+  }
+}
+
+export function historyClientToRow(h: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: h.id,
+    user_id: h.userId ?? null,
+    scanned_data: h.scannedData,
+    created_at: h.createdAt ?? new Date().toISOString(),
+    clinic_id: h.clinicId ?? null,
+  }
+}
+

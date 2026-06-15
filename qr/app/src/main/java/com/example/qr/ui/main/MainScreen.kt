@@ -31,11 +31,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.qr.data.HistoryEntry
 import com.example.qr.ui.theme.QrTheme
 
 @Composable
 fun MainScreen(
-    onStartScan: () -> Unit
+    onStartScan: () -> Unit,
+    historyViewModel: HistoryViewModel = viewModel()
 ) {
     var selectedItem by remember { mutableIntStateOf(0) }
     val items = listOf("Inicio", "Historial", "Configuración")
@@ -59,13 +72,13 @@ fun MainScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(24.dp),
+                .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             when (selectedItem) {
                 0 -> InicioContent(onStartScan)
-                1 -> HistorialContent()
+                1 -> HistorialContent(historyViewModel)
                 2 -> ConfiguracionContent()
             }
         }
@@ -114,8 +127,97 @@ fun InicioContent(onStartScan: () -> Unit) {
 }
 
 @Composable
-fun HistorialContent() {
+fun HistorialContent(viewModel: HistoryViewModel = viewModel()) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.fetchHistory()
+    }
+
     Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Historial de Check-In",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            IconButton(onClick = { viewModel.fetchHistory() }) {
+                Icon(Icons.Rounded.Refresh, contentDescription = "Actualizar")
+            }
+        }
+
+        when (val state = uiState) {
+            is HistoryUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+            is HistoryUiState.Success -> {
+                if (state.entries.isEmpty()) {
+                    EmptyHistoryMessage()
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(state.entries) { entry ->
+                            HistoryItem(entry)
+                        }
+                    }
+                }
+            }
+            is HistoryUiState.Error -> {
+                Text(
+                    text = "Error: ${state.message}",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun HistoryItem(entry: HistoryEntry) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = entry.guest_name ?: "Invitado desconocido",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "QR: ${entry.scanned_data}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = entry.created_at?.substringBefore("T") ?: "",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.End)
+            )
+        }
+    }
+}
+
+@Composable
+fun EmptyHistoryMessage() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -123,18 +225,12 @@ fun HistorialContent() {
             imageVector = Icons.Rounded.History,
             contentDescription = null,
             modifier = Modifier.size(80.dp),
-            tint = MaterialTheme.colorScheme.secondary
+            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Check-In History",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Your recent activity will appear here.",
-            style = MaterialTheme.typography.bodyMedium,
+            text = "No hay registros aún",
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }

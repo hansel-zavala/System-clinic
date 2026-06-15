@@ -35,6 +35,7 @@ import {
 } from './mappers.js'
 import { resetDatabaseToAdminOnly } from './resetToAdminOnly.js'
 import { buildUserRowsForUpsert } from './usersPersist.js'
+import { getHistoryRecords, insertHistoryRecord } from './historyPersist.js'
 import { hashPassword, verifyPassword } from './passwordCrypto.js'
 import { registerProfilePhotoRoute } from './profilePhotoUpload.js'
 import type { DbUser } from './mappers.js'
@@ -185,6 +186,16 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
       sseClients.forEach((client) => {
         client.write(`data: ${JSON.stringify({ appointmentId })}\n\n`)
       })
+
+      try {
+        await insertHistoryRecord(supabase, {
+          userId: null,
+          scannedData: appointmentId,
+          clinicId: null,
+        })
+      } catch (histErr) {
+        console.error('[scan-qr] Error al guardar en historial:', histErr)
+      }
 
       res.send(`
         <!DOCTYPE html>
@@ -339,7 +350,7 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
       return res.status(503).json({ success: false, message: 'Supabase no configurado.' })
     }
 
-    const { qrData } = req.body as { qrData: string }
+    const { qrData, userId, clinicId } = req.body as { qrData: string; userId?: string; clinicId?: string }
     if (!qrData) {
       return res.status(400).json({ success: false, message: 'Faltan datos del QR.' })
     }
@@ -403,6 +414,16 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
         client.write(`data: ${JSON.stringify({ appointmentId, action: 'check-in', patientName })}\n\n`)
       })
 
+      try {
+        await insertHistoryRecord(supabase, {
+          userId: userId || null,
+          scannedData: qrData,
+          clinicId: clinicId || null,
+        })
+      } catch (histErr) {
+        console.error('[check-in] Error al guardar en historial:', histErr)
+      }
+
       // 5. Responder a la App
       const fecha = new Date(appData.fecha_iso)
       const hora = fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
@@ -419,6 +440,41 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
       return res.status(500).json({ success: false, message: 'Error interno en el servidor.' })
     }
   })
+
+  app.get('/api/history', async (req, res) => {
+    if (!supabase) {
+      return res.status(503).json({ ok: false, message: 'Supabase no configurado.' })
+    }
+    try {
+      const records = await getHistoryRecords(supabase)
+      return res.json({ ok: true, data: records })
+    } catch (e) {
+      console.error('[GET /api/history] Error:', e)
+      return res.status(500).json({ ok: false, message: 'Error interno en el servidor.' })
+    }
+  })
+
+  app.post('/api/history', async (req, res) => {
+    if (!supabase) {
+      return res.status(503).json({ ok: false, message: 'Supabase no configurado.' })
+    }
+    const { userId, scannedData, clinicId } = req.body as { userId?: string; scannedData?: string; clinicId?: string }
+    if (!scannedData) {
+      return res.status(400).json({ ok: false, message: 'Falta el contenido escaneado (scannedData).' })
+    }
+    try {
+      const record = await insertHistoryRecord(supabase, {
+        userId,
+        scannedData,
+        clinicId,
+      })
+      return res.status(201).json({ ok: true, message: 'Registro de historial creado.', data: record })
+    } catch (e) {
+      console.error('[POST /api/history] Error:', e)
+      return res.status(500).json({ ok: false, message: 'Error interno en el servidor.' })
+    }
+  })
+
 
 
   app.get('/api/clinic/tables', async (_req, res) => {
@@ -696,8 +752,8 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
       const medicosConHorario = allMedicos.filter(m => {
         if (!m.horario_disponible) return true // Si no tiene horario, asumimos siempre disponible (opcional)
         
-        const scheduleParts = m.horario_disponible.split(',').map(s => s.trim())
-        return scheduleParts.some(part => {
+        const scheduleParts = m.horario_disponible.split(',').map((s: string) => s.trim())
+        return scheduleParts.some((part: string) => {
           if (!part.startsWith(targetDayName)) return false
           const timeRange = part.replace(targetDayName, '').trim() // "08:00-12:00"
           const [start, end] = timeRange.split('-')

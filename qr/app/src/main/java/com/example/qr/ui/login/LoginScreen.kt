@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -27,6 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,15 +40,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.qr.ui.theme.QrTheme
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
+    viewModel: LoginViewModel = viewModel()
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var isError by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsState()
     var visible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -74,6 +78,7 @@ fun LoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
+                // ... (AnimatedVisibility content remains the same)
                 AnimatedVisibility(
                     visible = visible,
                     enter = fadeIn() + slideInVertically()
@@ -117,14 +122,15 @@ fun LoginScreen(
                             value = username,
                             onValueChange = { 
                                 username = it
-                                isError = false
+                                viewModel.clearError()
                             },
-                            label = { Text("Username") },
+                            label = { Text("Usuario") },
                             leadingIcon = { Icon(Icons.Rounded.Person, contentDescription = null) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            isError = isError,
-                            shape = MaterialTheme.shapes.large
+                            isError = uiState is LoginUiState.Error,
+                            shape = MaterialTheme.shapes.large,
+                            enabled = uiState !is LoginUiState.Loading
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -133,20 +139,21 @@ fun LoginScreen(
                             value = password,
                             onValueChange = { 
                                 password = it
-                                isError = false
+                                viewModel.clearError()
                             },
-                            label = { Text("Password") },
+                            label = { Text("Contraseña") },
                             leadingIcon = { Icon(Icons.Rounded.Lock, contentDescription = null) },
                             modifier = Modifier.fillMaxWidth(),
                             visualTransformation = PasswordVisualTransformation(),
                             singleLine = true,
-                            isError = isError,
-                            shape = MaterialTheme.shapes.large
+                            isError = uiState is LoginUiState.Error,
+                            shape = MaterialTheme.shapes.large,
+                            enabled = uiState !is LoginUiState.Loading
                         )
 
-                        if (isError) {
+                        if (uiState is LoginUiState.Error) {
                             Text(
-                                text = "Missing credentials",
+                                text = (uiState as LoginUiState.Error).message,
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(top = 8.dp, start = 4.dp)
@@ -158,17 +165,24 @@ fun LoginScreen(
                         Button(
                             onClick = {
                                 if (username.isNotBlank() && password.isNotBlank()) {
-                                    onLoginSuccess()
-                                } else {
-                                    isError = true
+                                    viewModel.login(username, password, onLoginSuccess)
                                 }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
-                            shape = MaterialTheme.shapes.extraLarge
+                            shape = MaterialTheme.shapes.extraLarge,
+                            enabled = uiState !is LoginUiState.Loading && username.isNotBlank() && password.isNotBlank()
                         ) {
-                            Text("Login", style = MaterialTheme.typography.titleLarge)
+                            if (uiState is LoginUiState.Loading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text("Ingresar", style = MaterialTheme.typography.titleLarge)
+                            }
                         }
                     }
                 }

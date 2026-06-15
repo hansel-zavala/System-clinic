@@ -4,6 +4,7 @@
 -- ============================================================
 
 -- Eliminar tablas existentes (orden inverso a FK)
+DROP TABLE IF EXISTS history CASCADE;
 DROP TABLE IF EXISTS clinical_notes CASCADE;
 DROP TABLE IF EXISTS clinical_encounters CASCADE;
 DROP TABLE IF EXISTS doctor_schedule_slots CASCADE;
@@ -206,3 +207,12 @@ VALUES (
   'Por favor, describe brevemente los síntomas o el problema de consulta por el que deseas visitarnos:'
 )
 ON CONFLICT (id) DO NOTHING;
+
+-- 16. SCAN HISTORY
+CREATE TABLE IF NOT EXISTS history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  scanned_data TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  clinic_id TEXT
+);
