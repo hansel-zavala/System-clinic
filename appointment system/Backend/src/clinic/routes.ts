@@ -419,6 +419,7 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
           userId: userId || null,
           scannedData: qrData,
           clinicId: clinicId || null,
+          patientName: patientName,
         })
       } catch (histErr) {
         console.error('[check-in] Error al guardar en historial:', histErr)

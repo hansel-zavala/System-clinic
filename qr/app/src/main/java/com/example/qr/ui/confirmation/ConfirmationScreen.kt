@@ -33,13 +33,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.qr.api.AppointmentApi
 import com.example.qr.data.CheckInRequest
-import com.example.qr.ui.login.LoginScreen
+import com.example.qr.data.SessionManager
 import com.example.qr.ui.theme.QrTheme
 
 sealed interface ConfirmationState {
@@ -57,10 +58,18 @@ fun ConfirmationScreen(
     var state by remember { mutableStateOf<ConfirmationState>(ConfirmationState.Loading) }
     val api = remember { AppointmentApi.create() }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
 
     LaunchedEffect(qrData) {
         state = try {
-            val response = api.checkIn(CheckInRequest(qrData))
+            val response = api.checkIn(
+                CheckInRequest(
+                    qrData = qrData,
+                    userId = sessionManager.getUserId(),
+                    clinicId = sessionManager.getClinicId()
+                )
+            )
             if (response.success) {
                 ConfirmationState.Success(response.patientName ?: "Paciente", response.time ?: "--:--")
             } else {

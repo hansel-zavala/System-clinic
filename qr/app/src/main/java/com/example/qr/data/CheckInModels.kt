@@ -4,7 +4,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class CheckInRequest(
-    val qrData: String
+    val qrData: String,
+    val userId: String? = null,
+    val clinicId: String? = null
 )
 
 @Serializable
@@ -16,11 +18,18 @@ data class CheckInResponse(
 )
 
 @Serializable
+data class HistoryResponse(
+    val ok: Boolean,
+    val data: List<HistoryEntry>
+)
+
+@Serializable
 data class HistoryEntry(
     val id: String? = null,
-    val guest_name: String? = null,
-    val scanned_data: String? = null,
-    val created_at: String? = null
+    val userId: String? = null,
+    val patientName: String? = null,
+    val scannedData: String? = null,
+    val createdAt: String? = null
 )
 
 @Serializable

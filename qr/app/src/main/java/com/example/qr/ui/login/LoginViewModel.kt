@@ -1,10 +1,12 @@
 package com.example.qr.ui.login
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.qr.api.AppointmentApi
 import com.example.qr.data.LoginRequest
 import com.example.qr.data.LoginResponse
+import com.example.qr.data.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -18,9 +20,10 @@ sealed class LoginUiState {
     data class Error(val message: String) : LoginUiState()
 }
 
-class LoginViewModel : ViewModel() {
+class LoginViewModel(application: Application) : AndroidViewModel(application) {
     private val api = AppointmentApi.create()
     private val json = Json { ignoreUnknownKeys = true }
+    private val sessionManager = SessionManager(application)
 
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
     val uiState: StateFlow<LoginUiState> = _uiState
@@ -30,7 +33,12 @@ class LoginViewModel : ViewModel() {
             _uiState.value = LoginUiState.Loading
             try {
                 val response = api.login(LoginRequest(correo, password))
-                if (response.ok) {
+                if (response.ok && response.user != null) {
+                    sessionManager.saveSession(
+                        userId = response.user.id,
+                        userName = response.user.nombre,
+                        clinicId = "AURA_CLINIC_001" // Valor por defecto
+                    )
                     _uiState.value = LoginUiState.Success(response.message)
                     onLoginSuccess()
                 } else {

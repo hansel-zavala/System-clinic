@@ -4,6 +4,7 @@ import com.example.qr.BuildConfig
 import com.example.qr.data.CheckInRequest
 import com.example.qr.data.CheckInResponse
 import com.example.qr.data.HistoryEntry
+import com.example.qr.data.HistoryResponse
 import com.example.qr.data.LoginRequest
 import com.example.qr.data.LoginResponse
 import kotlinx.serialization.json.Json
@@ -18,8 +19,8 @@ interface AppointmentApi {
     @POST("check-in")
     suspend fun checkIn(@Body request: CheckInRequest): CheckInResponse
 
-    @GET("history")
-    suspend fun getHistory(): List<HistoryEntry>
+    @GET("../history")
+    suspend fun getHistory(): HistoryResponse
 
     @POST("../auth/login")
     suspend fun login(@Body request: LoginRequest): LoginResponse

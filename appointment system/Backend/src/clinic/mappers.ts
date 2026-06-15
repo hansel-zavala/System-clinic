@@ -526,6 +526,7 @@ export function chatbotSettingsClientToRow(c: Record<string, unknown>): Record<s
 export type DbHistory = {
   id: string
   user_id: string | null
+  patient_name: string | null
   scanned_data: string
   created_at: string
   clinic_id: string | null
@@ -535,6 +536,7 @@ export function historyRowToClient(row: DbHistory) {
   return {
     id: row.id,
     userId: row.user_id,
+    patientName: row.patient_name,
     scannedData: row.scanned_data,
     createdAt: row.created_at,
     clinicId: row.clinic_id,
@@ -545,6 +547,7 @@ export function historyClientToRow(h: Record<string, unknown>): Record<string, u
   return {
     id: h.id,
     user_id: h.userId ?? null,
+    patient_name: h.patientName ?? null,
     scanned_data: h.scannedData,
     created_at: h.createdAt ?? new Date().toISOString(),
     clinic_id: h.clinicId ?? null,

@@ -31,8 +31,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.rounded.Refresh
@@ -188,28 +190,85 @@ fun HistorialContent(viewModel: HistoryViewModel = viewModel()) {
 
 @Composable
 fun HistoryItem(entry: HistoryEntry) {
+    val rawData = entry.scannedData ?: ""
+    val isAuraQr = rawData.startsWith("CLINICA_AURA|")
+    val displayData = if (isAuraQr) {
+        rawData.removePrefix("CLINICA_AURA|")
+    } else {
+        rawData
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        shape = MaterialTheme.shapes.large,
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = entry.guest_name ?: "Invitado desconocido",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "QR: ${entry.scanned_data}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = entry.created_at?.substringBefore("T") ?: "",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.align(Alignment.End)
-            )
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Icono representativo con círculo de fondo
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(
+                        color = if (isAuraQr) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                        shape = androidx.compose.foundation.shape.CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isAuraQr) Icons.Rounded.QrCodeScanner else Icons.Rounded.History,
+                    contentDescription = null,
+                    tint = if (isAuraQr) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1.0f)) {
+                Text(
+                    text = entry.patientName ?: if (isAuraQr) "Check-in de Cita" else "Escaneo Externo",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "ID: $displayData",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+            }
+
+            Column(horizontalAlignment = Alignment.End) {
+                val datePart = entry.createdAt?.substringBefore("T") ?: ""
+                val timePart = entry.createdAt?.substringAfter("T", "")?.take(5) ?: ""
+
+                Text(
+                    text = datePart,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                if (timePart.isNotEmpty()) {
+                    Text(
+                        text = timePart,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }

@@ -28,8 +28,12 @@ class HistoryViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = HistoryUiState.Loading
             try {
-                val entries = api.getHistory()
-                _uiState.value = HistoryUiState.Success(entries)
+                val response = api.getHistory()
+                if (response.ok) {
+                    _uiState.value = HistoryUiState.Success(response.data)
+                } else {
+                    _uiState.value = HistoryUiState.Error("Error al obtener el historial")
+                }
             } catch (e: Exception) {
                 _uiState.value = HistoryUiState.Error(e.message ?: "Error desconocido")
             }

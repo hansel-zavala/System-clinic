@@ -274,7 +274,7 @@ import '../styles/global.css';
           let aiResponse = data.text;
           
           // Detectar intención de agendar (JSON al final)
-          const jsonMatch = aiResponse.match(/\{"intent":\s*"CONFIRM_BOOKING".*?\}/s);
+          const jsonMatch = aiResponse.match(/\{"intent":\s*"CONFIRM_BOOKING".*\}/s);
           const cleanText = jsonMatch ? aiResponse.replace(jsonMatch[0], '').trim() : aiResponse;
 
           chatHistory.push({ role: 'user', text });
