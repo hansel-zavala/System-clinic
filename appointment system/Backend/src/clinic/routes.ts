@@ -723,6 +723,12 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
         return res.status(400).json({ ok: false, error: 'Formato de fecha inválido.' })
       }
 
+      const normalizedIso = targetDate.toISOString()
+      const minutes = targetDate.getUTCMinutes()
+      if (minutes !== 0 && minutes !== 30) {
+        return res.status(400).json({ ok: false, error: 'Las citas solo pueden agendarse en intervalos de 30 minutos (ej. 9:00, 9:30).' })
+      }
+
       // 1. Consultorios activos
       const { data: consultorios, error: cErr } = await supabase
         .from('consultorios')
@@ -770,7 +776,7 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
       const { data: appointments, error: aErr } = await supabase
         .from('appointments')
         .select('medico_user_id, consultorio_id')
-        .or(`fecha_iso.eq.${fechaISO},fecha_iso.eq.${fechaISO.replace('.000Z', 'Z')},fecha_iso.eq.${fechaISO.replace('Z', '.000Z')}`)
+        .or(`fecha_iso.eq.${normalizedIso},fecha_iso.eq.${normalizedIso.replace('.000Z', 'Z')},fecha_iso.eq.${normalizedIso.replace('Z', '.000Z')}`)
         .neq('estado', 'cancelada')
       if (aErr) throw aErr
 
@@ -838,6 +844,16 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
       return res.status(400).json({ ok: false, error: 'Faltan campos requeridos (nombre, telefono, fechaISO, motivo).' })
     }
 
+    const targetDate = new Date(fechaISO)
+    if (isNaN(targetDate.getTime())) {
+      return res.status(400).json({ ok: false, error: 'Formato de fecha inválido.' })
+    }
+    const normalizedIso = targetDate.toISOString()
+    const minutes = targetDate.getUTCMinutes()
+    if (minutes !== 0 && minutes !== 30) {
+      return res.status(400).json({ ok: false, error: 'Las citas solo pueden agendarse en intervalos de 30 minutos (ej. 9:00, 9:30).' })
+    }
+
     try {
       // 1. Verificar disponibilidad y obtener médico/consultorio libres
       const { data: consultorios, error: cErr } = await supabase
@@ -846,20 +862,42 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
         .eq('activo', true)
       if (cErr) throw cErr
 
-      const { data: medicos, error: mErr } = await supabase
+      const { data: allMedicos, error: mErr } = await supabase
         .from('users')
-        .select('id')
+        .select('id, nombre, horario_disponible')
         .eq('rol', 'medico')
       if (mErr) throw mErr
 
-      if (!consultorios || consultorios.length === 0 || !medicos || medicos.length === 0) {
+      if (!consultorios || consultorios.length === 0 || !allMedicos || allMedicos.length === 0) {
         return res.status(400).json({ ok: false, error: 'No hay recursos médicos disponibles en la clínica.' })
+      }
+
+      // Filtrar médicos por horario disponible (Costa Rica UTC-6)
+      const weekdays = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado']
+      const localDate = new Date(targetDate.getTime() - 6 * 60 * 60 * 1000)
+      const targetDayName = weekdays[localDate.getUTCDay()]
+      const targetTimeStr = localDate.getUTCHours().toString().padStart(2, '0') + ':' + localDate.getUTCMinutes().toString().padStart(2, '0')
+
+      const medicosConHorario = allMedicos.filter(m => {
+        if (!m.horario_disponible) return true
+        
+        const scheduleParts = m.horario_disponible.split(',').map((s: string) => s.trim())
+        return scheduleParts.some((part: string) => {
+          if (!part.startsWith(targetDayName)) return false
+          const timeRange = part.replace(targetDayName, '').trim()
+          const [start, end] = timeRange.split('-')
+          return targetTimeStr >= start && targetTimeStr < end
+        })
+      })
+
+      if (medicosConHorario.length === 0) {
+        return res.status(400).json({ ok: false, error: `No hay médicos disponibles que atiendan los ${targetDayName} a las ${targetTimeStr}.` })
       }
 
       const { data: appointments, error: aErr } = await supabase
         .from('appointments')
         .select('medico_user_id, consultorio_id')
-        .or(`fecha_iso.eq.${fechaISO},fecha_iso.eq.${fechaISO.replace('.000Z', 'Z')},fecha_iso.eq.${fechaISO.replace('Z', '.000Z')}`)
+        .or(`fecha_iso.eq.${normalizedIso},fecha_iso.eq.${normalizedIso.replace('.000Z', 'Z')},fecha_iso.eq.${normalizedIso.replace('Z', '.000Z')}`)
         .neq('estado', 'cancelada')
       if (aErr) throw aErr
 
@@ -867,7 +905,7 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
       const occupiedMedicos = new Set((appointments ?? []).map((a) => a.medico_user_id))
 
       const freeConsultorio = consultorios.find((c) => !occupiedConsultorios.has(c.id))
-      const freeMedico = medicos.find((m) => !occupiedMedicos.has(m.id))
+      const freeMedico = medicosConHorario.find((m) => !occupiedMedicos.has(m.id))
 
       if (!freeConsultorio || !freeMedico) {
         return res.status(400).json({ ok: false, error: 'El horario seleccionado ya no está disponible.' })
@@ -961,7 +999,7 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
         paciente_id: pacienteId,
         medico_user_id: freeMedico.id,
         consultorio_id: freeConsultorio.id,
-        fecha_iso: fechaISO,
+        fecha_iso: normalizedIso,
         duracion_min: 30,
         motivo,
         estado: 'pendiente',

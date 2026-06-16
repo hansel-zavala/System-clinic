@@ -177,5 +177,6 @@ export interface ChatbotSettings {
   askPhone: string
   askReason: string
   askSymptoms: string
+  usarIa: boolean
   updatedAt: string
 }

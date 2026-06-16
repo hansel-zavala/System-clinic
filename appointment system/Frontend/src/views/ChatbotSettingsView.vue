@@ -43,6 +43,36 @@
         </nav>
 
         <div v-if="activeTab === 'messages'" class="cfg-grid animate-fade">
+          <!-- Modo de Operación del Chatbot -->
+          <section class="cfg-tile col-span-2">
+            <header class="cfg-head">
+              <h2><Brain :size="16" stroke-width="2.2" aria-hidden="true" /> Modo de Operación del Chatbot</h2>
+            </header>
+            <div class="mode-toggles">
+              <div class="toggle-card" :class="{ active: settings.usarIa }" @click="settings.usarIa = true">
+                <div class="toggle-info">
+                  <h3>Chatbot con IA</h3>
+                  <p>Usa Gemini (inteligencia artificial) para conversar fluidamente y extraer los datos necesarios.</p>
+                </div>
+                <label class="switch-control" @click.stop>
+                  <input type="checkbox" :checked="settings.usarIa" @change="settings.usarIa = true" />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-card" :class="{ active: !settings.usarIa }" @click="settings.usarIa = false">
+                <div class="toggle-info">
+                  <h3>Chatbot sin IA</h3>
+                  <p>Flujo tradicional paso a paso guiado por las preguntas estáticas configuradas abajo.</p>
+                </div>
+                <label class="switch-control" @click.stop>
+                  <input type="checkbox" :checked="!settings.usarIa" @change="settings.usarIa = false" />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+          </section>
+
           <section class="cfg-tile">
             <header class="cfg-head">
               <h2><MessageSquare :size="16" stroke-width="2.2" aria-hidden="true" /> Mensaje de Bienvenida</h2>
@@ -69,7 +99,7 @@
             </header>
             <div class="field">
               <input v-model="settings.askPhone" class="cell-in" />
-              <p class="hint">Usa <code>\{{name}}</code> para incluir el nombre del paciente en la pregunta.</p>
+              <p class="hint">Usa <code v-pre>{{name}}</code> para incluir el nombre del paciente en la pregunta.</p>
             </div>
           </section>
 
@@ -146,7 +176,7 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowLeft, MessageSquare, User, Phone, ListChecks, Stethoscope, Plus, Trash2 } from 'lucide-vue-next'
+import { ArrowLeft, MessageSquare, User, Phone, ListChecks, Stethoscope, Plus, Trash2, Brain } from 'lucide-vue-next'
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import PageHero from '../components/layout/PageHero.vue'
@@ -168,6 +198,7 @@ const settings = ref<ChatbotSettings>({
   askPhone: '',
   askReason: '',
   askSymptoms: '',
+  usarIa: true,
   updatedAt: ''
 })
 
@@ -528,5 +559,106 @@ const saveAll = async () => {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Estilos premium para los switches de modo */
+.col-span-2 {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, rgba(58, 143, 183, 0.03) 0%, rgba(46, 125, 150, 0.03) 100%);
+  border-bottom: 1px solid var(--border);
+}
+.mode-toggles {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 10px;
+}
+@media (min-width: 640px) {
+  .mode-toggles {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.toggle-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.01);
+}
+.toggle-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(58, 143, 183, 0.08);
+}
+.toggle-card.active {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, rgba(58, 143, 183, 0.05) 0%, rgba(46, 125, 150, 0.01) 100%);
+  box-shadow: 0 4px 12px rgba(58, 143, 183, 0.05);
+}
+.toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 12px;
+}
+.toggle-info h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+.toggle-info p {
+  margin: 0;
+  font-size: 0.76rem;
+  color: #5a7584;
+  line-height: 1.4;
+}
+
+/* Switch Slider */
+.switch-control {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.switch-control input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: .3s;
+  border-radius: 24px;
+}
+.switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.switch-control input:checked + .switch-slider {
+  background: linear-gradient(135deg, #3a8fb7, #2e7d96);
+}
+.switch-control input:checked + .switch-slider:before {
+  transform: translateX(22px);
 }
 </style>

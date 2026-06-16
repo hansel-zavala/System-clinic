@@ -460,6 +460,7 @@ export type DbChatbotSettings = {
   ask_phone: string
   ask_reason: string
   ask_symptoms: string
+  usar_ia: boolean
   updated_at: string
 }
 
@@ -507,6 +508,7 @@ export function chatbotSettingsRowToClient(row: DbChatbotSettings) {
     askPhone: row.ask_phone,
     askReason: row.ask_reason,
     askSymptoms: row.ask_symptoms,
+    usarIa: row.usar_ia,
     updatedAt: row.updated_at,
   }
 }
@@ -519,6 +521,7 @@ export function chatbotSettingsClientToRow(c: Record<string, unknown>): Record<s
     ask_phone: c.askPhone,
     ask_reason: c.askReason,
     ask_symptoms: c.askSymptoms,
+    usar_ia: c.usarIa ?? true,
     updated_at: new Date().toISOString(),
   }
 }

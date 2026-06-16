@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.material.icons.rounded.History
@@ -366,7 +367,7 @@ fun ConfiguracionContent(onLogout: () -> Unit) {
             }
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.weight(1f))
         
         // Botón Cerrar Sesión
         Button(
@@ -376,22 +377,23 @@ fun ConfiguracionContent(onLogout: () -> Unit) {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .height(64.dp),
+            shape = RoundedCornerShape(32.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.errorContainer,
                 contentColor = MaterialTheme.colorScheme.onErrorContainer
             ),
-            shape = MaterialTheme.shapes.medium
+            //shape = MaterialTheme.shapes.medium
         ) {
             Icon(Icons.AutoMirrored.Rounded.ExitToApp, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text("Cerrar Sesión", fontWeight = FontWeight.Bold)
         }
         
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(16.dp))
         
         Text(
-            text = "Clínica Aura v1.0.0",
+            text = "Clínica Aura v2.0.0",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 16.dp)

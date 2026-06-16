@@ -194,17 +194,19 @@ CREATE TABLE IF NOT EXISTS chatbot_settings (
   ask_phone TEXT NOT NULL,
   ask_reason TEXT NOT NULL,
   ask_symptoms TEXT NOT NULL,
+  usar_ia BOOLEAN NOT NULL DEFAULT true,
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-INSERT INTO chatbot_settings (id, welcome_message, ask_name, ask_phone, ask_reason, ask_symptoms)
+INSERT INTO chatbot_settings (id, welcome_message, ask_name, ask_phone, ask_reason, ask_symptoms, usar_ia)
 VALUES (
   '00000000-0000-0000-0000-000000000001',
   '¡Hola! Soy el Asistente de Reservas de Clínica Aura. Estoy aquí para ayudarte a programar tu visita de forma rápida y segura.',
   'Para comenzar, ¿podrías confirmar tu nombre y apellido completo?',
   'Entendido, {{name}}. ¿Cuál es tu número de teléfono de contacto?',
   'Excelente. ¿Cuál es el motivo principal de tu visita hoy?',
-  'Por favor, describe brevemente los síntomas o el problema de consulta por el que deseas visitarnos:'
+  'Por favor, describe brevemente los síntomas o el problema de consulta por el que deseas visitarnos:',
+  true
 )
 ON CONFLICT (id) DO NOTHING;
 
