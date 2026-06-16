@@ -37,7 +37,9 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     sessionManager.saveSession(
                         userId = response.user.id,
                         userName = response.user.nombre,
-                        clinicId = "AURA_CLINIC_001" // Valor por defecto
+                        email = response.user.correo,
+                        role = response.user.rol,
+                        clinicId = "AURA_CLINIC_001"
                     )
                     _uiState.value = LoginUiState.Success(response.message)
                     onLoginSuccess()

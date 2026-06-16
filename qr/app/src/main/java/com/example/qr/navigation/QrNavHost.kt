@@ -33,6 +33,11 @@ fun QrNavHost() {
                     MainScreen(
                         onStartScan = {
                             backStack.add(Destination.Scanner)
+                        },
+                        onLogout = {
+                            // Limpiar el stack y volver al Login
+                            while (backStack.size > 0) backStack.removeAt(backStack.size - 1)
+                            backStack.add(Destination.Login)
                         }
                     )
                 }
