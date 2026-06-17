@@ -197,6 +197,7 @@ import PageHero from '../components/layout/PageHero.vue'
 import StatusBadge from '../components/ui/StatusBadge.vue'
 import { formatDateOnlyEs, formatDateTimeSystem, formatTimeSystem } from '../domain/datetimeDisplay'
 import { motivoConsultaLabel } from '../domain/motivoConsulta'
+import { newNumericId } from '../domain/generateId'
 import type { AppointmentView } from '../domain/types'
 import { useClinicUiStore } from '../stores/ui'
 
@@ -231,11 +232,66 @@ const formatDateTime = (iso: string) => formatDateTimeSystem(iso)
 const formatDateOnly = (iso: string) => formatDateOnlyEs(iso)
 const formatTime = (iso: string) => formatTimeSystem(iso)
 
+const sendConfirmWhatsAppMessage = (appVal: AppointmentView) => {
+  const patient = store.patients.find((p) => p.id === appVal.pacienteId)
+  const phone = patient ? patient.telefono : ''
+  const cleanPhone = phone.replace(/\D/g, '')
+  const messageText = `Hola ${appVal.pacienteNombre}, te confirmamos tu cita en Clínica Aura para el día ${formatDateOnly(appVal.fechaISO)} a las ${formatTime(appVal.fechaISO)} con el médico ${appVal.medicoAsignado}. Motivo: ${motivoLabel(appVal.motivo)}. ¡Te esperamos!`
+  const encodedText = encodeURIComponent(messageText)
+  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedText}`
+  window.open(whatsappUrl, '_blank')
+}
+
+const sendCancelWhatsAppMessage = (appVal: AppointmentView) => {
+  const patient = store.patients.find((p) => p.id === appVal.pacienteId)
+  const phone = patient ? patient.telefono : ''
+  const cleanPhone = phone.replace(/\D/g, '')
+  const messageText = `Hola ${appVal.pacienteNombre}, te informamos que tu cita programada para el día ${formatDateOnly(appVal.fechaISO)} a las ${formatTime(appVal.fechaISO)} en Clínica Aura ha sido cancelada. Si deseas programar una nueva cita, puedes hacerlo desde nuestro chatbot o llamando a soporte. ¡Un saludo!`
+  const encodedText = encodeURIComponent(messageText)
+  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedText}`
+  window.open(whatsappUrl, '_blank')
+}
+
+const sendRescheduleWhatsAppMessage = (appVal: AppointmentView) => {
+  const patient = store.patients.find((p) => p.id === appVal.pacienteId)
+  const phone = patient ? patient.telefono : ''
+  const cleanPhone = phone.replace(/\D/g, '')
+  const messageText = `Hola ${appVal.pacienteNombre}, te informamos que tu cita en Clínica Aura ha sido reagendada para el día ${formatDateOnly(appVal.fechaISO)} a las ${formatTime(appVal.fechaISO)} con el médico ${appVal.medicoAsignado}. Motivo: ${motivoLabel(appVal.motivo)}. ¡Te esperamos!`
+  const encodedText = encodeURIComponent(messageText)
+  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedText}`
+  window.open(whatsappUrl, '_blank')
+}
+
+const onSendWhatsApp = () => {
+  if (!appointment.value) return
+  const appVal = appointment.value
+  if (appVal.estado === 'cancelada') {
+    sendCancelWhatsAppMessage(appVal)
+  } else {
+    sendConfirmWhatsAppMessage(appVal)
+  }
+}
+
 const onCancel = async () => {
   if (!appointment.value) return
   try {
-    await store.cancelAppointment(appointment.value.id)
-    message.value = 'Cita cancelada y notificación creada.'
+    message.value = ''
+    const appVal = appointment.value
+    
+    // Abrir WhatsApp antes de la llamada asíncrona para evitar bloqueo del navegador
+    sendCancelWhatsAppMessage(appVal)
+
+    await store.cancelAppointment(appVal.id)
+
+    // Notificación en el sistema para el usuario actual (médico/admin logueado)
+    await store.pushNotification({
+      id: newNumericId(),
+      userId: store.currentUser.id,
+      appointmentId: appVal.id,
+      mensaje: `La cita de "${appVal.pacienteNombre}" se ha cancelado y notificado por mensaje correctamente.`,
+      fechaISO: new Date().toISOString(),
+      leida: false,
+    })
   } catch (e) {
     message.value = e instanceof Error ? e.message : 'Error al cancelar.'
   }
@@ -244,35 +300,54 @@ const onCancel = async () => {
 const onReschedule = async () => {
   if (!appointment.value) return
   try {
-    await store.rescheduleAppointment(appointment.value.id)
-    message.value = 'Cita reagendada para el día siguiente.'
+    message.value = ''
+    const appVal = appointment.value
+
+    // Crear una copia temporal con la nueva fecha para el mensaje de WhatsApp (ya que se reagenda +1 día)
+    const updatedAppVal = {
+      ...appVal,
+      fechaISO: new Date(new Date(appVal.fechaISO).getTime() + 24 * 60 * 60 * 1000).toISOString()
+    }
+    
+    // Abrir WhatsApp antes de la llamada asíncrona para evitar bloqueo del navegador
+    sendRescheduleWhatsAppMessage(updatedAppVal)
+
+    await store.rescheduleAppointment(appVal.id)
+
+    // Notificación en el sistema para el usuario actual (médico/admin logueado)
+    await store.pushNotification({
+      id: newNumericId(),
+      userId: store.currentUser.id,
+      appointmentId: appVal.id,
+      mensaje: `La cita de "${appVal.pacienteNombre}" se ha reagendado correctamente para el ${formatDateOnly(appVal.fechaISO)} a las ${formatTime(appVal.fechaISO)} y notificado por mensaje.`,
+      fechaISO: new Date().toISOString(),
+      leida: false,
+    })
   } catch (e) {
     message.value = e instanceof Error ? e.message : 'Error al reagendar.'
   }
 }
 
-const sendWhatsAppMessage = (appVal: AppointmentView) => {
-  const patient = store.patients.find((p) => p.id === appVal.pacienteId)
-  const phone = patient ? patient.telefono : ''
-  const cleanPhone = phone.replace(/\D/g, '')
-  const messageText = `Hola ${appVal.pacienteNombre}, te confirmamos tu cita en Médic Clinic para el día ${formatDateOnly(appVal.fechaISO)} a las ${formatTime(appVal.fechaISO)} con el médico ${appVal.medicoAsignado}. Motivo: ${motivoLabel(appVal.motivo)}. ¡Te esperamos!`
-  const encodedText = encodeURIComponent(messageText)
-  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedText}`
-  window.open(whatsappUrl, '_blank')
-}
-
-const onSendWhatsApp = () => {
-  if (!appointment.value) return
-  sendWhatsAppMessage(appointment.value)
-}
-
 const onConfirm = async () => {
   if (!appointment.value) return
   try {
+    message.value = ''
     const appVal = appointment.value
+
+    // Abrir WhatsApp antes de la llamada asíncrona para evitar bloqueo del navegador
+    sendConfirmWhatsAppMessage(appVal)
+
     await store.confirmAppointment(appVal.id)
-    message.value = 'Cita confirmada y aceptada.'
-    sendWhatsAppMessage(appVal)
+
+    // Notificación en el sistema para el usuario actual (médico/admin logueado)
+    await store.pushNotification({
+      id: newNumericId(),
+      userId: store.currentUser.id,
+      appointmentId: appVal.id,
+      mensaje: `La cita de "${appVal.pacienteNombre}" se ha confirmado y notificado por mensaje correctamente.`,
+      fechaISO: new Date().toISOString(),
+      leida: false,
+    })
   } catch (e) {
     message.value = e instanceof Error ? e.message : 'Error al confirmar.'
   }
@@ -281,8 +356,19 @@ const onConfirm = async () => {
 const onReject = async () => {
   if (!appointment.value) return
   try {
-    await store.rejectAppointment(appointment.value.id)
-    message.value = 'Cita rechazada (no aceptada).'
+    message.value = ''
+    const appVal = appointment.value
+    await store.rejectAppointment(appVal.id)
+
+    // Notificación en el sistema para el usuario actual (médico/admin logueado)
+    await store.pushNotification({
+      id: newNumericId(),
+      userId: store.currentUser.id,
+      appointmentId: appVal.id,
+      mensaje: `La cita de "${appVal.pacienteNombre}" ha sido rechazada.`,
+      fechaISO: new Date().toISOString(),
+      leida: false,
+    })
   } catch (e) {
     message.value = e instanceof Error ? e.message : 'Error al rechazar.'
   }
@@ -291,12 +377,24 @@ const onReject = async () => {
 const onComplete = async () => {
   if (!appointment.value) return
   try {
-    await store.completeAppointment(appointment.value.id)
-    message.value = 'Consulta completada y finalizada.'
+    message.value = ''
+    const appVal = appointment.value
+    await store.completeAppointment(appVal.id)
+
+    // Notificación en el sistema para el usuario actual (médico/admin logueado)
+    await store.pushNotification({
+      id: newNumericId(),
+      userId: store.currentUser.id,
+      appointmentId: appVal.id,
+      mensaje: `La cita de "${appVal.pacienteNombre}" se ha finalizado correctamente.`,
+      fechaISO: new Date().toISOString(),
+      leida: false,
+    })
   } catch (e) {
     message.value = e instanceof Error ? e.message : 'Error al completar.'
   }
 }
+
 </script>
 
 <style scoped>

@@ -131,6 +131,7 @@ export const useClinicUiStore = defineStore('clinic-ui', () => {
     loginWithCredentials,
     logout,
     markNotificationRead,
+    pushNotification,
     notificationsForCurrentUser,
     medicationCatalog,
     newPatientsByMonth: appointmentApi.newPatientsByMonth,

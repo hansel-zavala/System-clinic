@@ -34,8 +34,19 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val response = api.login(LoginRequest(correo, password))
                 if (response.ok && response.user != null) {
+                    // Procesar la URL de la foto si es relativa
+                    val finalPhotoUrl = response.user.fotoUrl?.let { url ->
+                        if (url.startsWith("http")) url 
+                        else {
+                            // Extraer el host base de la URL de la API (ej: de http://10.0.2.2:4000/api/clinic/ a http://10.0.2.2:4000)
+                            val baseUrl = com.example.qr.BuildConfig.BASE_URL.substringBefore("/api")
+                            "$baseUrl${if (url.startsWith("/")) "" else "/"}$url"
+                        }
+                    }
+
                     sessionManager.saveSession(
                         userId = response.user.id,
+                        photoUrl = finalPhotoUrl,
                         userName = response.user.nombre,
                         email = response.user.correo,
                         role = response.user.rol,

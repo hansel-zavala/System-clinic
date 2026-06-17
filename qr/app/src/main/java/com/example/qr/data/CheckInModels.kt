@@ -1,6 +1,7 @@
 package com.example.qr.data
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 
 @Serializable
 data class CheckInRequest(
@@ -50,5 +51,6 @@ data class UserInfo(
     val id: String,
     val nombre: String,
     val correo: String,
-    val rol: String
+    val rol: String,
+    @SerialName("foto_url") val fotoUrl: String? = null
 )

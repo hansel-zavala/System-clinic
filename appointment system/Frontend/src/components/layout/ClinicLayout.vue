@@ -1,5 +1,33 @@
 <template>
   <div class="layout">
+    <!-- Contenedor global de Toasts flotantes -->
+    <div class="toast-container">
+      <transition-group name="toast-slide">
+        <div 
+          v-for="toast in activeToasts" 
+          :key="toast.id" 
+          class="toast-card"
+          @click="handleToastClick(toast)"
+        >
+          <span class="toast-icon">
+            <Bell :size="15" />
+          </span>
+          <div class="toast-content">
+            <p class="toast-title">Alerta del Sistema</p>
+            <p class="toast-message">{{ toast.mensaje }}</p>
+          </div>
+          <button 
+            class="toast-close" 
+            type="button" 
+            aria-label="Cerrar" 
+            @click.stop="removeToast(toast.id)"
+          >
+            <X :size="13" />
+          </button>
+        </div>
+      </transition-group>
+    </div>
+
     <header class="topbar">
       <button class="menu-trigger" type="button" @click="openMenu">Menu</button>
       <div ref="notifRef" class="topbar-actions">
@@ -11,10 +39,29 @@
           </button>
           <article v-if="notifOpen" class="notif-menu">
             <p class="notif-title">Notificaciones</p>
-            <ul v-if="store.notificationsForCurrentUser.length">
-              <li v-for="item in store.notificationsForCurrentUser.slice(0, 6)" :key="item.id">
-                <p>{{ item.mensaje }}</p>
-                <button v-if="!item.leida" type="button" @click="store.markNotificationRead(item.id)">Marcar leida</button>
+            <ul v-if="unreadNotifications.length">
+              <li 
+                v-for="item in unreadNotifications.slice(0, 6)" 
+                :key="item.id"
+                class="notif-item"
+                :class="{ unread: !item.leida }"
+              >
+                <div 
+                  class="notif-item-body"
+                  :class="{ clickable: !!item.appointmentId }"
+                  @click="handleNotifClick(item)"
+                >
+                  <p class="notif-item-text">{{ item.mensaje }}</p>
+                </div>
+                <button 
+                  v-if="!item.leida" 
+                  class="notif-item-close"
+                  type="button" 
+                  aria-label="Marcar como leída"
+                  @click.stop="store.markNotificationRead(item.id)"
+                >
+                  <X :size="13" />
+                </button>
               </li>
             </ul>
             <p v-else class="notif-empty">Sin notificaciones</p>
@@ -67,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import {
   Bell,
   CalendarClock,
@@ -81,6 +128,7 @@ import {
   ShieldPlus,
   Stethoscope,
   UsersRound,
+  X,
 } from 'lucide-vue-next'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useClinicUiStore } from '../../stores/ui'
@@ -92,7 +140,65 @@ const logoutArmed = ref(false)
 const notifOpen = ref(false)
 const notifRef = ref<HTMLElement | null>(null)
 let logoutTimer: number | undefined
-const unreadCount = computed(() => store.notificationsForCurrentUser.filter((item) => !item.leida).length)
+
+// Sistema de Toasts flotantes
+interface ToastItem {
+  id: string
+  mensaje: string
+  appointmentId: string | null
+}
+const activeToasts = ref<ToastItem[]>([])
+const lastKnownNotifIds = new Set<string>()
+
+// Rellenamos el set de IDs conocidos inicialmente para evitar spam de toasts históricos al recargar
+store.notificationsForCurrentUser.forEach(n => lastKnownNotifIds.add(n.id))
+
+watch(
+  () => store.notificationsForCurrentUser,
+  (newNotifs) => {
+    newNotifs.forEach((n) => {
+      if (!lastKnownNotifIds.has(n.id)) {
+        lastKnownNotifIds.add(n.id)
+        if (!n.leida) {
+          activeToasts.value.push({
+            id: n.id,
+            mensaje: n.mensaje,
+            appointmentId: n.appointmentId,
+          })
+          setTimeout(() => {
+            removeToast(n.id)
+          }, 6000)
+        }
+      }
+    })
+  },
+  { deep: true }
+)
+
+const removeToast = (id: string) => {
+  activeToasts.value = activeToasts.value.filter((t) => t.id !== id)
+}
+
+const handleToastClick = (toast: ToastItem) => {
+  store.markNotificationRead(toast.id)
+  removeToast(toast.id)
+  if (toast.appointmentId) {
+    notifOpen.value = false
+    router.push({ path: '/app/detalle-cita', query: { id: toast.appointmentId } })
+  }
+}
+
+const handleNotifClick = (item: any) => {
+  store.markNotificationRead(item.id)
+  if (item.appointmentId) {
+    notifOpen.value = false
+    router.push({ path: '/app/detalle-cita', query: { id: item.appointmentId } })
+  }
+}
+
+const unreadNotifications = computed(() => store.notificationsForCurrentUser.filter((n) => !n.leida))
+
+const unreadCount = computed(() => unreadNotifications.value.length)
 
 const openMenu = () => (menuOpen.value = true)
 const closeMenu = () => (menuOpen.value = false)
@@ -298,25 +404,52 @@ onUnmounted(() => {
   display: grid;
   gap: 8px;
 }
-.notif-menu li {
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
   border-radius: 8px;
   background: rgba(122, 181, 210, 0.14);
-  padding: 8px;
+  padding: 8px 10px;
+  transition: background 0.15s ease;
 }
-.notif-menu li p {
+.notif-item.unread {
+  background: rgba(122, 181, 210, 0.22);
+  border-left: 3px solid #3d7fa6;
+}
+.notif-item-body {
+  flex-grow: 1;
+}
+.notif-item-body.clickable {
+  cursor: pointer;
+}
+.notif-item-body.clickable:hover .notif-item-text {
+  text-decoration: underline;
+  color: #244a61;
+}
+.notif-item-text {
   margin: 0;
   font-size: 0.82rem;
+  line-height: 1.35;
+  color: #333;
 }
-.notif-menu li button {
-  margin-top: 6px;
+.notif-item-close {
+  flex-shrink: 0;
   border: 0;
-  border-radius: 8px;
-  padding: 6px 8px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: #fff;
-  background: #3d7fa6;
+  background: transparent;
+  padding: 4px;
+  color: #888;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.notif-item-close:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #cc5a6f;
 }
 .notif-empty {
   margin: 0;
@@ -513,5 +646,92 @@ onUnmounted(() => {
     width: 78px;
     font-size: 0.62rem;
   }
+}
+
+.toast-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+  display: grid;
+  gap: 10px;
+  width: min(360px, 90vw);
+  pointer-events: none;
+}
+.toast-card {
+  pointer-events: auto;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(58, 143, 183, 0.25);
+  border-left: 4px solid #3fa580;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(17, 58, 85, 0.16);
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+.toast-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 36px rgba(17, 58, 85, 0.22);
+}
+.toast-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(58, 143, 183, 0.12);
+  color: #3d7fa6;
+  display: grid;
+  place-items: center;
+}
+.toast-content {
+  flex-grow: 1;
+}
+.toast-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #244a61;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.toast-message {
+  margin: 4px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.35;
+  color: #444;
+}
+.toast-close {
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  padding: 4px;
+  color: #aaa;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.toast-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #cc5a6f;
+}
+
+/* Transición animada para los toasts */
+.toast-slide-enter-active,
+.toast-slide-leave-active {
+  transition: all 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.toast-slide-enter-from {
+  transform: translateX(100%) scale(0.9);
+  opacity: 0;
+}
+.toast-slide-leave-to {
+  transform: translateX(100%) scale(0.9);
+  opacity: 0;
 }
 </style>

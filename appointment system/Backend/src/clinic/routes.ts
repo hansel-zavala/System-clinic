@@ -1058,6 +1058,30 @@ export function registerClinicRoutes(app: Express, supabase: SupabaseClient | nu
     }
   })
 
+  /** Endpoint para verificar estado de una cita específica por su ID */
+  app.get('/api/clinic/appointments/:id/status', async (req, res) => {
+    if (!supabase) {
+      return res.status(503).json({ ok: false, error: 'Supabase no configurado.' })
+    }
+    const { id } = req.params
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('estado')
+        .eq('id', id)
+        .maybeSingle()
+
+      if (error) throw error
+      if (!data) {
+        return res.status(404).json({ ok: false, error: 'Cita no encontrada.' })
+      }
+      return res.json({ ok: true, estado: data.estado })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      return res.status(500).json({ ok: false, error: msg })
+    }
+  })
+
   /** Obtener configuración del chatbot y motivos activos */
   app.get('/api/clinic/settings/chatbot', async (req, res) => {
     if (!supabase) {

@@ -99,7 +99,7 @@ import '../styles/global.css';
   <script>
     const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:4000';
     // MODO DESARROLLO: Cambiar a false para activar la restricción de una cita por día en producción
-    const DISABLE_BOOKING_RESTRICTION = true; 
+    const DISABLE_BOOKING_RESTRICTION = false; 
 
     interface ChatMessage {
       role: 'user' | 'model';
@@ -1036,6 +1036,19 @@ import '../styles/global.css';
       if (activeBooking && !DISABLE_BOOKING_RESTRICTION) {
         try {
           const appt = JSON.parse(activeBooking);
+          if (appt.id) {
+            try {
+              const res = await fetch(`${API_URL}/api/clinic/appointments/${appt.id}/status`);
+              const statusData = await res.json();
+              if (statusData.ok && (statusData.estado === 'completada' || statusData.estado === 'cancelada' || statusData.estado === 'no_aceptada')) {
+                localStorage.removeItem('medclinic_active_booking');
+                startChatFlow();
+                return;
+              }
+            } catch (fetchErr) {
+              console.error('Error fetching appointment status:', fetchErr);
+            }
+          }
           showExistingBooking(appt);
         } catch (e) {
           localStorage.removeItem('medclinic_active_booking');
